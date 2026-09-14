@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# CLI output (generated chart PNGs from `python analyze.py ...`)
+rule1_output/
+
+# OS / editor cruft
+.DS_Store
+.vscode/
+.idea/
