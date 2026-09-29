@@ -239,6 +239,19 @@ def compute_sticker_price(current_eps: Optional[float],
     )
 
 
+def implied_annual_return(current_price: Optional[float], future_price: Optional[float],
+                          years: float = PROJECTION_YEARS) -> Optional[float]:
+    """
+    Annualized return from buying at `current_price` today if the stock
+    reaches the Sticker Price walk-through's `future_price` in `years`.
+    Ignores dividends. Buying exactly at the Sticker Price returns MARR,
+    since the Sticker Price is `future_price` discounted at MARR.
+    """
+    if current_price is None or current_price <= 0 or future_price is None:
+        return None
+    return cagr(current_price, future_price, years)
+
+
 def _verdict(current_price, sticker_price, mos_price) -> str:
     if current_price is None or sticker_price is None or mos_price is None:
         return "Can't compare to the current price (missing data)."

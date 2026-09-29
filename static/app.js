@@ -225,6 +225,236 @@
     els.stickerTable.innerHTML = html;
   }
 
+  // ---------- Backtest card ------------------------------------------------
+  // Everything here comes from /api/backtest/<ticker> (rule1/backtest.py),
+  // which reads backtest_signals / backtest_outcomes. Provenance lines come
+  // from the API where it supplies them; per-metric lines are spelled out
+  // here from the same row keys.
+
+  const bt = {
+    status: document.getElementById("bt-status"),
+    body: document.getElementById("bt-body"),
+    lastStart: document.getElementById("bt-last-start"),
+    lastStartNote: document.getElementById("bt-last-start-note"),
+    gapMin: document.getElementById("bt-gap-min"),
+    gapMedian: document.getElementById("bt-gap-median"),
+    gapMax: document.getElementById("bt-gap-max"),
+    nextDate: document.getElementById("bt-next-date"),
+    nextNote: document.getElementById("bt-next-note"),
+    srcLastStart: document.getElementById("bt-src-last-start"),
+    srcGaps: document.getElementById("bt-src-gaps"),
+    srcNext: document.getElementById("bt-src-next"),
+    horizons: document.getElementById("bt-horizons"),
+    noOutcomes: document.getElementById("bt-no-outcomes"),
+    outcomes: document.getElementById("bt-outcomes"),
+    hitRates: document.getElementById("bt-hit-rates"),
+    latestLabel: document.getElementById("bt-latest-label"),
+    performance: document.getElementById("bt-performance"),
+    rowsTable: document.getElementById("bt-rows-table"),
+    srcRows: document.getElementById("bt-src-rows"),
+    projMarr: document.getElementById("bt-proj-marr"),
+    projImplied: document.getElementById("bt-proj-implied"),
+    projImpliedNote: document.getElementById("bt-proj-implied-note"),
+    srcProj: document.getElementById("bt-src-proj"),
+  };
+
+  const BT_HIT_RATES = [
+    ["moat_held_up", "Moat held up"],
+    ["price_target_hit", "Price target hit"],
+    ["is_profitable", "Win rate (profitable)"],
+  ];
+  const BT_PERFORMANCE = [
+    ["max_drawdown", "Max drawdown"],
+    ["volatility", "Volatility (annualized)"],
+    ["benchmark_return", "Benchmark return"],
+    ["benchmark_delta", "vs. benchmark"],
+  ];
+
+  let btData = null;
+  let btRequested = null;
+
+  function setDays(el, d) {
+    if (d === null || d === undefined) {
+      el.textContent = "n/a";
+      return;
+    }
+    el.innerHTML = `${Math.round(d).toLocaleString()} days <span class="bt-note">≈ ${(d / 365.25).toFixed(1)} yr</span>`;
+  }
+
+  function fmtSignedPct(v) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "n/a";
+    return (v > 0 ? "+" : "") + fmtPct(v);
+  }
+
+  function fmtFlag(v) {
+    return v === true ? "yes" : v === false ? "no" : "n/a";
+  }
+
+  function btShowStatus(message) {
+    bt.body.hidden = true;
+    bt.status.hidden = false;
+    bt.status.textContent = message;
+  }
+
+  function renderBuyWindows(ticker, w) {
+    const src = w.provenance;
+    bt.lastStart.textContent = w.last_start || "none";
+    bt.lastStartNote.textContent = w.still_open
+      ? `still open as of the latest signal (${w.latest_signal_date})`
+      : `${w.starts.length} window${w.starts.length === 1 ? "" : "s"} in ${w.signal_rows} signals` +
+        (w.latest_signal_date ? ` through ${w.latest_signal_date}` : "");
+    bt.srcLastStart.textContent = src.last_start;
+
+    const g = w.gaps;
+    setDays(bt.gapMin, g && g.min_days);
+    setDays(bt.gapMedian, g && g.median_days);
+    setDays(bt.gapMax, g && g.max_days);
+    bt.srcGaps.textContent = g
+      ? `${src.gaps} ${g.n} gap${g.n === 1 ? "" : "s"}: ${g.gaps_days.map((d) => d.toLocaleString()).join(", ")} days.`
+      : `${src.gaps} Needs at least two buy-window starts; ${ticker} has ${w.starts.length}.`;
+
+    const m = w.next_window_marker;
+    bt.nextDate.textContent = m ? m.date : "n/a";
+    bt.nextNote.textContent = m
+      ? `range ${m.earliest} to ${m.latest}` + (m.already_passed ? ` · already passed as of ${m.today}` : "") +
+        " · illustrative, not a forecast"
+      : "";
+    bt.srcNext.textContent = m ? src.next_window_marker : `${src.next_window_marker} Not shown: no gap to measure.`;
+  }
+
+  function btTile(label, value, sub, source, tone) {
+    return `
+      <div class="stat-tile bt-tile ${tone || ""}">
+        <span class="stat-name">${escapeHtml(label)}</span>
+        <span class="stat-value ${tone || ""}">${escapeHtml(value)}</span>
+        <span class="stat-window">${escapeHtml(sub)}</span>
+        <p class="bt-src">Source: ${escapeHtml(source)}</p>
+      </div>`;
+  }
+
+  function renderHorizon(ticker, h) {
+    const block = btData.by_horizon[String(h)];
+    bt.horizons.querySelectorAll(".chip").forEach((c) => {
+      const active = c.dataset.horizon === String(h);
+      c.classList.toggle("is-active", active);
+      c.setAttribute("aria-pressed", String(active));
+    });
+
+    bt.hitRates.innerHTML = BT_HIT_RATES.map(([col, label]) => {
+      const r = block.hit_rates[col];
+      const sub = `${r.hits} of ${r.n} signals` + (r.missing ? ` (${r.missing} not yet known)` : "");
+      return btTile(label, fmtPct(r.rate), sub, block.provenance.hit_rates[col]);
+    }).join("");
+
+    const latest = block.latest;
+    bt.latestLabel.textContent =
+      `latest signal ${latest.signal_date} → ${latest.target_date || "n/a"} (${h}-year hold)`;
+    bt.performance.innerHTML = BT_PERFORMANCE.map(([col, label]) => {
+      const v = latest[col];
+      const signed = col === "benchmark_return" || col === "benchmark_delta";
+      const tone = col === "benchmark_delta" && v != null ? (v >= 0 ? "is-green" : "is-red") : "";
+      const sub = col === "benchmark_delta"
+        ? `realized ${fmtSignedPct(latest.realized_return)} minus benchmark`
+        : col === "max_drawdown" ? "peak to trough while held" : col === "volatility" ? "while held" : "same holding period";
+      const source = `backtest_outcomes.${col} for ${ticker}, signal_date = ${latest.signal_date}, horizon_years = ${h}.`;
+      return btTile(label, signed ? fmtSignedPct(v) : fmtPct(v), sub, source, tone);
+    }).join("");
+
+    const cols = [
+      ["Signal", (o) => o.signal_date],
+      ["Target", (o) => o.target_date || "n/a"],
+      ["Price at signal", (o) => fmtMoney(o.price_at_signal)],
+      ["Realized price", (o) => fmtMoney(o.realized_price)],
+      ["Realized return", (o) => fmtSignedPct(o.realized_return)],
+      ["Projected", (o) => fmtSignedPct(o.projected_return)],
+      ["Moat held", (o) => fmtFlag(o.moat_held_up), "flag"],
+      ["Target hit", (o) => fmtFlag(o.price_target_hit), "flag"],
+      ["Profitable", (o) => fmtFlag(o.is_profitable), "flag"],
+      ["Max DD", (o) => fmtPct(o.max_drawdown)],
+      ["Vol", (o) => fmtPct(o.volatility)],
+      ["Benchmark", (o) => fmtSignedPct(o.benchmark_return)],
+      ["Delta", (o) => fmtSignedPct(o.benchmark_delta)],
+    ];
+    const head = `<tr>${cols.map(([name]) => `<th>${escapeHtml(name)}</th>`).join("")}</tr>`;
+    const body = block.rows.map((o) => `<tr>${cols.map(([, fn, kind]) => {
+      const text = fn(o);
+      const cls = kind === "flag" ? (text === "yes" ? "is-yes" : text === "no" ? "is-no" : "") : "";
+      return `<td class="${cls}">${escapeHtml(text)}</td>`;
+    }).join("")}</tr>`).join("");
+    bt.rowsTable.innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
+    bt.srcRows.textContent = `Source: ${block.provenance.rows}`;
+  }
+
+  // Live, not from rule1.db: comes with /api/analyze (the same
+  // compute_sticker_price() result the Sticker Price card shows).
+  function renderProjection(ticker, p) {
+    bt.projMarr.textContent = fmtPct(p.marr);
+    const r = p.implied_annual_return;
+    bt.projImplied.textContent = fmtPct(r);
+    bt.projImplied.className = "figure-value" + (r == null ? "" : r >= p.marr ? " is-green" : " is-red");
+
+    if (!p.live) {
+      bt.projImpliedNote.textContent = "live price unavailable (showing cached data), so no buy-now projection";
+    } else if (r == null) {
+      bt.projImpliedNote.textContent = "needs a current price and a Sticker Price projection";
+    } else {
+      bt.projImpliedNote.textContent =
+        `${fmtMoney(p.current_price)} today → ${fmtMoney(p.future_price)} in ${p.years} yr` +
+        ` (Sticker Price ${fmtMoney(p.sticker_price)})`;
+    }
+    bt.srcProj.textContent =
+      `Source: live compute_sticker_price() for ${ticker} (growth ${fmtPct(p.growth_rate)}, ` +
+      `PE ${p.rule1_pe != null ? p.rule1_pe.toFixed(1) : "n/a"}). Implied return = ` +
+      `(future price ÷ today's price)^(1/${p.years}) − 1, dividends excluded. Buying at exactly the ` +
+      `Sticker Price gives the ${fmtPct(p.marr)} MARR.`;
+  }
+
+  function renderBacktest(data) {
+    btData = data;
+    if (!data.available) {
+      btShowStatus(`No backtest data: ${data.reason}`);
+      return;
+    }
+    bt.status.hidden = true;
+    bt.body.hidden = false;
+    renderBuyWindows(data.ticker, data.buy_windows);
+
+    if (!data.horizons.length) {
+      bt.horizons.innerHTML = "";
+      bt.outcomes.hidden = true;
+      bt.noOutcomes.hidden = false;
+      bt.noOutcomes.textContent =
+        `No rows for ${data.ticker} in backtest_outcomes yet, so there are no hit rates or performance metrics to show.`;
+      return;
+    }
+    bt.outcomes.hidden = false;
+    bt.noOutcomes.hidden = true;
+    bt.horizons.innerHTML = data.horizons.map((h) =>
+      `<button type="button" class="chip" data-horizon="${h}" aria-pressed="false">${h} yr</button>`
+    ).join("");
+    renderHorizon(data.ticker, data.default_horizon);
+  }
+
+  async function loadBacktest(ticker) {
+    btRequested = ticker;
+    btShowStatus(`Loading backtest for ${ticker}…`);
+    try {
+      const resp = await fetch(`/api/backtest/${encodeURIComponent(ticker)}`);
+      const data = await resp.json();
+      if (btRequested !== ticker) return; // a newer search superseded this one
+      if (!resp.ok) throw new Error(`Request failed (${resp.status})`);
+      renderBacktest(data);
+    } catch (err) {
+      if (btRequested === ticker) btShowStatus(`Couldn't load backtest data: ${err.message}`);
+    }
+  }
+
+  bt.horizons.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip || !btData || !btData.available) return;
+    renderHorizon(btData.ticker, Number(chip.dataset.horizon));
+  });
+
   function render(data) {
     currentData = data;
 
@@ -275,6 +505,8 @@
     ).join("") || "<li>No source links available.</li>";
 
     results.hidden = false;
+    renderProjection(data.ticker, data.projection);
+    loadBacktest(data.ticker);
   }
 
   async function runSearch(rawTicker) {
