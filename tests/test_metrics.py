@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from rule1.metrics import (
     cagr, growth_rate_windows, average_windows, compute_roic, debt_payback_years,
     compute_sticker_price, pick_rule1_growth_rate, is_green, debt_color,
-    assess_moat,
+    assess_moat, implied_annual_return, MARR,
 )
 
 
@@ -124,6 +124,25 @@ def test_sticker_price_harley_2000_matches_book_almost_exactly():
     assert approx(result.mos_price, 43.49, 0.3), f"mos price {result.mos_price}"
     print(f"Harley sticker price ${result.sticker_price:.2f} / MOS ${result.mos_price:.2f} "
           f"matches the book's $86.97 / $43.49: OK")
+
+
+def test_implied_annual_return_equals_marr_at_sticker_price():
+    # Harley 2000 again: buying at the Sticker Price should earn exactly the
+    # 15% MARR the Sticker Price was discounted at; paying the MOS price
+    # (half) should earn more, paying double should earn less.
+    result = compute_sticker_price(
+        current_eps=0.89,
+        historical_equity_growth=0.24,
+        analyst_growth_estimate=0.24,
+        historical_avg_pe=46,
+    )
+    at_sticker = implied_annual_return(result.sticker_price, result.future_price)
+    assert approx(at_sticker, MARR, 1e-9), f"implied return at sticker {at_sticker}"
+    assert implied_annual_return(result.mos_price, result.future_price) > MARR
+    assert implied_annual_return(result.sticker_price * 2, result.future_price) < MARR
+    assert implied_annual_return(None, result.future_price) is None
+    assert implied_annual_return(0, result.future_price) is None
+    assert implied_annual_return(50.0, None) is None
 
 
 def test_pick_rule1_growth_rate_takes_the_lower_number():

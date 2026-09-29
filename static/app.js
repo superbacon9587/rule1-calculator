@@ -252,6 +252,10 @@
     performance: document.getElementById("bt-performance"),
     rowsTable: document.getElementById("bt-rows-table"),
     srcRows: document.getElementById("bt-src-rows"),
+    projMarr: document.getElementById("bt-proj-marr"),
+    projImplied: document.getElementById("bt-proj-implied"),
+    projImpliedNote: document.getElementById("bt-proj-implied-note"),
+    srcProj: document.getElementById("bt-src-proj"),
   };
 
   const BT_HIT_RATES = [
@@ -381,6 +385,30 @@
     bt.srcRows.textContent = `Source: ${block.provenance.rows}`;
   }
 
+  // Live, not from rule1.db: comes with /api/analyze (the same
+  // compute_sticker_price() result the Sticker Price card shows).
+  function renderProjection(ticker, p) {
+    bt.projMarr.textContent = fmtPct(p.marr);
+    const r = p.implied_annual_return;
+    bt.projImplied.textContent = fmtPct(r);
+    bt.projImplied.className = "figure-value" + (r == null ? "" : r >= p.marr ? " is-green" : " is-red");
+
+    if (!p.live) {
+      bt.projImpliedNote.textContent = "live price unavailable (showing cached data), so no buy-now projection";
+    } else if (r == null) {
+      bt.projImpliedNote.textContent = "needs a current price and a Sticker Price projection";
+    } else {
+      bt.projImpliedNote.textContent =
+        `${fmtMoney(p.current_price)} today → ${fmtMoney(p.future_price)} in ${p.years} yr` +
+        ` (Sticker Price ${fmtMoney(p.sticker_price)})`;
+    }
+    bt.srcProj.textContent =
+      `Source: live compute_sticker_price() for ${ticker} (growth ${fmtPct(p.growth_rate)}, ` +
+      `PE ${p.rule1_pe != null ? p.rule1_pe.toFixed(1) : "n/a"}). Implied return = ` +
+      `(future price ÷ today's price)^(1/${p.years}) − 1, dividends excluded. Buying at exactly the ` +
+      `Sticker Price gives the ${fmtPct(p.marr)} MARR.`;
+  }
+
   function renderBacktest(data) {
     btData = data;
     if (!data.available) {
@@ -477,6 +505,7 @@
     ).join("") || "<li>No source links available.</li>";
 
     results.hidden = false;
+    renderProjection(data.ticker, data.projection);
     loadBacktest(data.ticker);
   }
 

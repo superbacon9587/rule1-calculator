@@ -682,6 +682,40 @@ footer code {
 
 .bt-status { margin: 0; }
 
+/* Live "projected return if bought now" -- sits above the historical data. */
+.bt-projection {
+  padding-bottom: 1.2rem;
+  margin-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.bt-projection-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 1.4fr);
+  gap: 0.8rem 1.4rem;
+  align-items: start;
+}
+
+.bt-projection .figure-value.is-green { color: var(--good-text); }
+.bt-projection .figure-value.is-red { color: var(--critical); }
+
+.bt-disclaimer {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  border-radius: 6px;
+}
+
+.bt-projection .bt-src { margin-top: 0.6rem; }
+
+@media (max-width: 700px) {
+  .bt-projection-row { grid-template-columns: 1fr; }
+}
+
 .bt-subhead {
   font-family: "IBM Plex Sans", system-ui, sans-serif;
   font-size: 0.76rem;
