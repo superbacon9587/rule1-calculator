@@ -24,9 +24,12 @@ from flask import Flask, jsonify, render_template, request, send_file, abort
 from rule1.analysis import analyze
 from rule1.metrics import assess_moat
 from rule1 import report as report_mod
+from rule1.backtest import DEFAULT_DB_PATH, load_backtest
 
 BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "assets"
+# Read-only source for the Backtest card (backtest_signals / backtest_outcomes).
+BACKTEST_DB_PATH = DEFAULT_DB_PATH
 
 app = Flask(__name__)
 
@@ -203,6 +206,13 @@ def api_analyze():
         return jsonify({
             "error": f"Couldn't fetch or compute data for \"{ticker_u}\": {exc}",
         }), 502
+
+
+@app.route("/api/backtest/<ticker>")
+def api_backtest(ticker: str):
+    # Not cached: the backtest tables are rewritten by a separate pipeline,
+    # and this is a couple of small local queries.
+    return jsonify(load_backtest(ticker, BACKTEST_DB_PATH))
 
 
 @app.route("/api/chart/growth/<ticker>.png")

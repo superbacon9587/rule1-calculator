@@ -131,6 +131,69 @@
     <img id="moat-image" class="moat-image" src="" alt="">
   </section>
 
+  <section class="card backtest-card" id="backtest-card">
+    <div class="card-head">
+      <h2>Backtest</h2>
+      <p class="card-sub">How this ticker's past Rule #1 buy signals played out. Read-only from <code>rule1.db</code>; each number names the table and columns it came from.</p>
+    </div>
+
+    <p id="bt-status" class="chart-placeholder bt-status" hidden></p>
+
+    <div id="bt-body" hidden>
+      <h3 class="bt-subhead">Buy windows</h3>
+      <div class="bt-figures">
+        <div class="figure">
+          <span class="figure-label">Last buy-window start</span>
+          <span id="bt-last-start" class="figure-value">&mdash;</span>
+          <span id="bt-last-start-note" class="bt-note"></span>
+        </div>
+        <div class="figure">
+          <span class="figure-label">Gap between starts &middot; min</span>
+          <span id="bt-gap-min" class="figure-value">&mdash;</span>
+        </div>
+        <div class="figure">
+          <span class="figure-label">Median</span>
+          <span id="bt-gap-median" class="figure-value">&mdash;</span>
+        </div>
+        <div class="figure">
+          <span class="figure-label">Max</span>
+          <span id="bt-gap-max" class="figure-value">&mdash;</span>
+        </div>
+        <div class="figure">
+          <span class="figure-label">Next window if the median gap repeats</span>
+          <span id="bt-next-date" class="figure-value">&mdash;</span>
+          <span id="bt-next-note" class="bt-note"></span>
+        </div>
+      </div>
+      <ul class="bt-sources">
+        <li id="bt-src-last-start"></li>
+        <li id="bt-src-gaps"></li>
+        <li id="bt-src-next"></li>
+      </ul>
+
+      <div class="bt-horizon-row">
+        <h3 class="bt-subhead">Outcomes</h3>
+        <div id="bt-horizons" class="bt-horizons" role="group" aria-label="Holding period"></div>
+      </div>
+      <p id="bt-no-outcomes" class="chart-placeholder bt-status" hidden></p>
+
+      <div id="bt-outcomes">
+        <div id="bt-hit-rates" class="stat-grid bt-stat-grid"></div>
+
+        <h3 class="bt-subhead">Performance &middot; <span id="bt-latest-label"></span></h3>
+        <div id="bt-performance" class="stat-grid bt-stat-grid bt-stat-grid-4"></div>
+
+        <details class="bt-rows">
+          <summary>All outcome rows at this horizon</summary>
+          <div class="table-wrap">
+            <table id="bt-rows-table" class="bt-table"></table>
+          </div>
+          <p id="bt-src-rows" class="bt-src"></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
   <section class="card sources-card">
     <h2>Data sources</h2>
     <ul id="sources-list"></ul>
