@@ -16,3 +16,4 @@ rule1_output/
 .DS_Store
 .vscode/
 .idea/
+rule1.db
