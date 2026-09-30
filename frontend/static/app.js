@@ -73,6 +73,7 @@
   }
 
   function showImageOrPlaceholder(imgEl, placeholderEl, src, offline, onSettled) {
+    if (!imgEl || !placeholderEl) return;
     if (offline) {
       imgEl.hidden = true;
       placeholderEl.hidden = false;
@@ -94,7 +95,7 @@
   }
 
   function selectBigFiveMetric(key) {
-    if (!currentData) return;
+    if (!currentData || !els.bigFiveGrid) return;
     activeMetric = key;
     els.bigFiveGrid.querySelectorAll(".stat-tile").forEach((tile) => {
       tile.classList.toggle("is-active", tile.dataset.metric === key);
@@ -109,6 +110,7 @@
   }
 
   function renderBigFive(bigFive) {
+    if (!els.bigFiveGrid || !bigFive) return;
     els.bigFiveGrid.innerHTML = "";
     BIGFIVE_ORDER.forEach((key) => {
       const m = bigFive[key];
@@ -130,28 +132,16 @@
   }
 
   function wikipediaUrl(name) {
-    // "go=Go" jumps straight to the article on an exact/near-exact title
-    // match, and otherwise lands on Wikipedia's own search results for the
-    // name -- so this never points at a dead link, even when we can't be
-    // sure the person has an article under this exact title.
     return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(name)}&go=Go`;
   }
 
-  // Measures the Sticker Price card (right column) against the Debt payback
-  // card (top of the left column) and constrains the Leadership card to
-  // whatever vertical room is left, so the two columns' bottoms line up
-  // exactly. If the officer list doesn't fit at the default size, the whole
-  // list -- text and spacing together, since they're set in em off one
-  // font-size -- is scaled down in small steps until it does, down to a
-  // floor past which it scrolls instead of shrinking further.
   function fitLeadershipCard() {
     const stickerCard = document.querySelector(".sticker-card");
     const debtCard = document.querySelector(".debt-card");
     const leadershipCard = document.querySelector(".leadership-card");
     const stackedCol = document.querySelector(".stacked-col");
-    if (!stickerCard || !debtCard || !leadershipCard || !stackedCol) return;
+    if (!stickerCard || !debtCard || !leadershipCard || !stackedCol || !els.leadershipList) return;
 
-    // Clear any prior constraint so heights below reflect natural content.
     leadershipCard.style.flex = "";
     leadershipCard.style.height = "";
     els.leadershipList.style.fontSize = "";
@@ -161,12 +151,12 @@
     const gap = parseFloat(gapStr) || 0;
     const available = stickerCard.getBoundingClientRect().height
       - debtCard.getBoundingClientRect().height - gap;
-    if (!(available > 0)) return; // degenerate layout (e.g. very narrow window) -- leave natural
+    if (!(available > 0)) return;
 
     leadershipCard.style.flex = `0 0 ${available}px`;
     leadershipCard.style.height = `${available}px`;
 
-    if (els.leadershipList.hidden) return; // placeholder text already centers itself
+    if (els.leadershipList.hidden) return;
 
     const MAX_FONT = 0.84, MIN_FONT = 0.6, STEP = 0.02;
     let fontSize = MAX_FONT;
@@ -175,18 +165,13 @@
       els.leadershipList.style.fontSize = fontSize.toFixed(2) + "rem";
       if (els.leadershipList.scrollHeight <= els.leadershipList.clientHeight + 1) break;
     }
-    // Still doesn't fit at the smallest readable size (an unusually long
-    // officer roster) -- keep the floor size and let it scroll internally
-    // rather than shrink text past legibility. Switch off center-alignment
-    // in that case: a centered flex column clips overflow from BOTH ends,
-    // which can hide the first item(s) with no way to scroll back up to
-    // them -- top-aligned keeps everything reachable by scrolling down.
     const stillOverflowing = els.leadershipList.scrollHeight > els.leadershipList.clientHeight + 1;
     els.leadershipList.style.overflowY = stillOverflowing ? "auto" : "hidden";
     els.leadershipList.style.justifyContent = stillOverflowing ? "flex-start" : "center";
   }
 
   function renderLeadership(leadership, offline) {
+    if (!els.leadershipList || !els.leadershipPlaceholder) return;
     const people = (leadership || []).filter((p) => p && p.name);
     if (offline || !people.length) {
       els.leadershipList.innerHTML = "";
@@ -208,6 +193,7 @@
   }
 
   function renderStickerTable(sticker) {
+    if (!els.stickerTable || !sticker) return;
     const rows = [
       ["Current EPS", fmtMoney(sticker.current_eps)],
       ["Growth rate used", `${fmtPct(sticker.growth_rate)} (${sticker.growth_rate_source || "n/a"})`],
@@ -224,12 +210,6 @@
     html += `<tr class="mos"><td class="label">Margin-of-Safety price</td><td class="value">${fmtMoney(sticker.mos_price)}</td></tr>`;
     els.stickerTable.innerHTML = html;
   }
-
-  // ---------- Backtest card ------------------------------------------------
-  // Everything here comes from /api/backtest/<ticker> (rule1/backtest.py),
-  // which reads backtest_signals / backtest_outcomes. Provenance lines come
-  // from the API where it supplies them; per-metric lines are spelled out
-  // here from the same row keys.
 
   const bt = {
     status: document.getElementById("bt-status"),
@@ -274,6 +254,7 @@
   let btRequested = null;
 
   function setDays(el, d) {
+    if (!el) return;
     if (d === null || d === undefined) {
       el.textContent = "n/a";
       return;
@@ -291,35 +272,44 @@
   }
 
   function btShowStatus(message) {
-    bt.body.hidden = true;
-    bt.status.hidden = false;
-    bt.status.textContent = message;
+    if (bt.body) bt.body.hidden = true;
+    if (bt.status) {
+      bt.status.hidden = false;
+      bt.status.textContent = message;
+    }
   }
 
   function renderBuyWindows(ticker, w) {
-    const src = w.provenance;
+    if (!w || !bt.lastStart) return;
+    const src = w.provenance || {};
     bt.lastStart.textContent = w.last_start || "none";
-    bt.lastStartNote.textContent = w.still_open
-      ? `still open as of the latest signal (${w.latest_signal_date})`
-      : `${w.starts.length} window${w.starts.length === 1 ? "" : "s"} in ${w.signal_rows} signals` +
-        (w.latest_signal_date ? ` through ${w.latest_signal_date}` : "");
-    bt.srcLastStart.textContent = src.last_start;
+    if (bt.lastStartNote) {
+      bt.lastStartNote.textContent = w.still_open
+        ? `still open as of the latest signal (${w.latest_signal_date})`
+        : `${w.starts ? w.starts.length : 0} window${w.starts && w.starts.length === 1 ? "" : "s"} in ${w.signal_rows} signals` +
+          (w.latest_signal_date ? ` through ${w.latest_signal_date}` : "");
+    }
+    if (bt.srcLastStart) bt.srcLastStart.textContent = src.last_start || "";
 
     const g = w.gaps;
     setDays(bt.gapMin, g && g.min_days);
     setDays(bt.gapMedian, g && g.median_days);
     setDays(bt.gapMax, g && g.max_days);
-    bt.srcGaps.textContent = g
-      ? `${src.gaps} ${g.n} gap${g.n === 1 ? "" : "s"}: ${g.gaps_days.map((d) => d.toLocaleString()).join(", ")} days.`
-      : `${src.gaps} Needs at least two buy-window starts; ${ticker} has ${w.starts.length}.`;
+    if (bt.srcGaps) {
+      bt.srcGaps.textContent = g
+        ? `${src.gaps || ""} ${g.n} gap${g.n === 1 ? "" : "s"}: ${g.gaps_days.map((d) => d.toLocaleString()).join(", ")} days.`
+        : `${src.gaps || ""} Needs at least two buy-window starts; ${ticker} has ${w.starts ? w.starts.length : 0}.`;
+    }
 
     const m = w.next_window_marker;
-    bt.nextDate.textContent = m ? m.date : "n/a";
-    bt.nextNote.textContent = m
-      ? `range ${m.earliest} to ${m.latest}` + (m.already_passed ? ` · already passed as of ${m.today}` : "") +
-        " · illustrative, not a forecast"
-      : "";
-    bt.srcNext.textContent = m ? src.next_window_marker : `${src.next_window_marker} Not shown: no gap to measure.`;
+    if (bt.nextDate) bt.nextDate.textContent = m ? m.date : "n/a";
+    if (bt.nextNote) {
+      bt.nextNote.textContent = m
+        ? `range ${m.earliest} to ${m.latest}` + (m.already_passed ? ` · already passed as of ${m.today}` : "") +
+          " · illustrative, not a forecast"
+        : "";
+    }
+    if (bt.srcNext) bt.srcNext.textContent = m ? src.next_window_marker : `${src.next_window_marker || ""} Not shown: no gap to measure.`;
   }
 
   function btTile(label, value, sub, source, tone) {
@@ -333,80 +323,112 @@
   }
 
   function renderHorizon(ticker, h) {
+    if (!btData || !btData.by_horizon || !btData.by_horizon[String(h)]) return;
     const block = btData.by_horizon[String(h)];
-    bt.horizons.querySelectorAll(".chip").forEach((c) => {
-      const active = c.dataset.horizon === String(h);
-      c.classList.toggle("is-active", active);
-      c.setAttribute("aria-pressed", String(active));
-    });
 
-    bt.hitRates.innerHTML = BT_HIT_RATES.map(([col, label]) => {
-      const r = block.hit_rates[col];
-      const sub = `${r.hits} of ${r.n} signals` + (r.missing ? ` (${r.missing} not yet known)` : "");
-      return btTile(label, fmtPct(r.rate), sub, block.provenance.hit_rates[col]);
-    }).join("");
+    if (bt.horizons) {
+      bt.horizons.querySelectorAll(".chip").forEach((c) => {
+        const active = c.dataset.horizon === String(h);
+        c.classList.toggle("is-active", active);
+        c.setAttribute("aria-pressed", String(active));
+      });
+    }
 
-    const latest = block.latest;
-    bt.latestLabel.textContent =
-      `latest signal ${latest.signal_date} → ${latest.target_date || "n/a"} (${h}-year hold)`;
-    bt.performance.innerHTML = BT_PERFORMANCE.map(([col, label]) => {
-      const v = latest[col];
-      const signed = col === "benchmark_return" || col === "benchmark_delta";
-      const tone = col === "benchmark_delta" && v != null ? (v >= 0 ? "is-green" : "is-red") : "";
-      const sub = col === "benchmark_delta"
-        ? `realized ${fmtSignedPct(latest.realized_return)} minus benchmark`
-        : col === "max_drawdown" ? "peak to trough while held" : col === "volatility" ? "while held" : "same holding period";
-      const source = `backtest_outcomes.${col} for ${ticker}, signal_date = ${latest.signal_date}, horizon_years = ${h}.`;
-      return btTile(label, signed ? fmtSignedPct(v) : fmtPct(v), sub, source, tone);
-    }).join("");
+    if (bt.hitRates) {
+      bt.hitRates.innerHTML = BT_HIT_RATES.map(([col, label]) => {
+        const r = block.hit_rates ? block.hit_rates[col] : null;
+        if (!r) return "";
+        const sub = `${r.hits} of ${r.n} signals` + (r.missing ? ` (${r.missing} not yet known)` : "");
+        return btTile(label, fmtPct(r.rate), sub, block.provenance && block.provenance.hit_rates ? block.provenance.hit_rates[col] : "");
+      }).join("");
+    }
 
-    const cols = [
-      ["Signal", (o) => o.signal_date],
-      ["Target", (o) => o.target_date || "n/a"],
-      ["Price at signal", (o) => fmtMoney(o.price_at_signal)],
-      ["Realized price", (o) => fmtMoney(o.realized_price)],
-      ["Realized return", (o) => fmtSignedPct(o.realized_return)],
-      ["Projected", (o) => fmtSignedPct(o.projected_return)],
-      ["Moat held", (o) => fmtFlag(o.moat_held_up), "flag"],
-      ["Target hit", (o) => fmtFlag(o.price_target_hit), "flag"],
-      ["Profitable", (o) => fmtFlag(o.is_profitable), "flag"],
-      ["Max DD", (o) => fmtPct(o.max_drawdown)],
-      ["Vol", (o) => fmtPct(o.volatility)],
-      ["Benchmark", (o) => fmtSignedPct(o.benchmark_return)],
-      ["Delta", (o) => fmtSignedPct(o.benchmark_delta)],
-    ];
-    const head = `<tr>${cols.map(([name]) => `<th>${escapeHtml(name)}</th>`).join("")}</tr>`;
-    const body = block.rows.map((o) => `<tr>${cols.map(([, fn, kind]) => {
-      const text = fn(o);
-      const cls = kind === "flag" ? (text === "yes" ? "is-yes" : text === "no" ? "is-no" : "") : "";
-      return `<td class="${cls}">${escapeHtml(text)}</td>`;
-    }).join("")}</tr>`).join("");
-    bt.rowsTable.innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
-    bt.srcRows.textContent = `Source: ${block.provenance.rows}`;
+    const latest = block.latest || {};
+    if (bt.latestLabel) {
+      bt.latestLabel.textContent =
+        `latest signal ${latest.signal_date || "n/a"} → ${latest.target_date || "n/a"} (${h}-year hold)`;
+    }
+
+    if (bt.performance) {
+      bt.performance.innerHTML = BT_PERFORMANCE.map(([col, label]) => {
+        const v = latest[col];
+        const signed = col === "benchmark_return" || col === "benchmark_delta";
+        const tone = col === "benchmark_delta" && v != null ? (v >= 0 ? "is-green" : "is-red") : "";
+        const sub = col === "benchmark_delta"
+          ? `realized ${fmtSignedPct(latest.realized_return)} minus benchmark`
+          : col === "max_drawdown" ? "peak to trough while held" : col === "volatility" ? "while held" : "same holding period";
+        const source = `backtest_outcomes.${col} for ${ticker}, signal_date = ${latest.signal_date}, horizon_years = ${h}.`;
+        return btTile(label, signed ? fmtSignedPct(v) : fmtPct(v), sub, source, tone);
+      }).join("");
+    }
+
+    if (bt.rowsTable && block.rows) {
+      const cols = [
+        ["Signal", (o) => o.signal_date],
+        ["Target", (o) => o.target_date || "n/a"],
+        ["Price at signal", (o) => fmtMoney(o.price_at_signal)],
+        ["Realized price", (o) => fmtMoney(o.realized_price)],
+        ["Realized return", (o) => fmtSignedPct(o.realized_return)],
+        ["Projected", (o) => fmtSignedPct(o.projected_return)],
+        ["Moat held", (o) => fmtFlag(o.moat_held_up), "flag"],
+        ["Target hit", (o) => fmtFlag(o.price_target_hit), "flag"],
+        ["Profitable", (o) => fmtFlag(o.is_profitable), "flag"],
+        ["Max DD", (o) => fmtPct(o.max_drawdown)],
+        ["Vol", (o) => fmtPct(o.volatility)],
+        ["Benchmark", (o) => fmtSignedPct(o.benchmark_return)],
+        ["Delta", (o) => fmtSignedPct(o.benchmark_delta)],
+      ];
+      const head = `<tr>${cols.map(([name]) => `<th>${escapeHtml(name)}</th>`).join("")}</tr>`;
+      const body = block.rows.map((o) => `<tr>${cols.map(([, fn, kind]) => {
+        const text = fn(o);
+        const cls = kind === "flag" ? (text === "yes" ? "is-yes" : text === "no" ? "is-no" : "") : "";
+        return `<td class="${cls}">${escapeHtml(text)}</td>`;
+      }).join("")}</tr>`).join("");
+      bt.rowsTable.innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
+    }
+
+    if (bt.srcRows && block.provenance) bt.srcRows.textContent = `Source: ${block.provenance.rows}`;
   }
 
-  // Live, not from rule1.db: comes with /api/analyze (the same
-  // compute_sticker_price() result the Sticker Price card shows).
   function renderProjection(ticker, p) {
-    bt.projMarr.textContent = fmtPct(p.marr);
-    const r = p.implied_annual_return;
-    bt.projImplied.textContent = fmtPct(r);
-    bt.projImplied.className = "figure-value" + (r == null ? "" : r >= p.marr ? " is-green" : " is-red");
+    if (!bt.projMarr) return;
 
-    if (!p.live) {
-      bt.projImpliedNote.textContent = "live price unavailable (showing cached data), so no buy-now projection";
-    } else if (r == null) {
-      bt.projImpliedNote.textContent = "needs a current price and a Sticker Price projection";
-    } else {
-      bt.projImpliedNote.textContent =
-        `${fmtMoney(p.current_price)} today → ${fmtMoney(p.future_price)} in ${p.years} yr` +
-        ` (Sticker Price ${fmtMoney(p.sticker_price)})`;
+    if (!p) {
+      bt.projMarr.textContent = "n/a";
+      if (bt.projImplied) bt.projImplied.textContent = "n/a";
+      if (bt.projImpliedNote) bt.projImpliedNote.textContent = "Projection data unavailable";
+      if (bt.srcProj) bt.srcProj.textContent = "Source: unavailable";
+      return;
     }
-    bt.srcProj.textContent =
-      `Source: live compute_sticker_price() for ${ticker} (growth ${fmtPct(p.growth_rate)}, ` +
-      `PE ${p.rule1_pe != null ? p.rule1_pe.toFixed(1) : "n/a"}). Implied return = ` +
-      `(future price ÷ today's price)^(1/${p.years}) − 1, dividends excluded. Buying at exactly the ` +
-      `Sticker Price gives the ${fmtPct(p.marr)} MARR.`;
+
+    const marr = p.marr ?? 0.15;
+    bt.projMarr.textContent = fmtPct(marr);
+    const r = p.implied_annual_return;
+
+    if (bt.projImplied) {
+      bt.projImplied.textContent = fmtPct(r);
+      bt.projImplied.className = "figure-value" + (r == null ? "" : r >= marr ? " is-green" : " is-red");
+    }
+
+    if (bt.projImpliedNote) {
+      if (!p.live) {
+        bt.projImpliedNote.textContent = "live price unavailable (showing cached data), so no buy-now projection";
+      } else if (r == null) {
+        bt.projImpliedNote.textContent = "needs a current price and a Sticker Price projection";
+      } else {
+        bt.projImpliedNote.textContent =
+          `${fmtMoney(p.current_price)} today → ${fmtMoney(p.future_price)} in ${p.years} yr` +
+          ` (Sticker Price ${fmtMoney(p.sticker_price)})`;
+      }
+    }
+
+    if (bt.srcProj) {
+      bt.srcProj.textContent =
+        `Source: live compute_sticker_price() for ${ticker} (growth ${fmtPct(p.growth_rate)}, ` +
+        `PE ${p.rule1_pe != null ? p.rule1_pe.toFixed(1) : "n/a"}). Implied return = ` +
+        `(future price ÷ today's price)^(1/${p.years}) − 1, dividends excluded. Buying at exactly the ` +
+        `Sticker Price gives the ${fmtPct(marr)} MARR.`;
+    }
   }
 
   function renderBacktest(data) {
@@ -415,23 +437,27 @@
       btShowStatus(`No backtest data: ${data.reason}`);
       return;
     }
-    bt.status.hidden = true;
-    bt.body.hidden = false;
+    if (bt.status) bt.status.hidden = true;
+    if (bt.body) bt.body.hidden = false;
     renderBuyWindows(data.ticker, data.buy_windows);
 
-    if (!data.horizons.length) {
-      bt.horizons.innerHTML = "";
-      bt.outcomes.hidden = true;
-      bt.noOutcomes.hidden = false;
-      bt.noOutcomes.textContent =
-        `No rows for ${data.ticker} in backtest_outcomes yet, so there are no hit rates or performance metrics to show.`;
+    if (!data.horizons || !data.horizons.length) {
+      if (bt.horizons) bt.horizons.innerHTML = "";
+      if (bt.outcomes) bt.outcomes.hidden = true;
+      if (bt.noOutcomes) {
+        bt.noOutcomes.hidden = false;
+        bt.noOutcomes.textContent =
+          `No rows for ${data.ticker} in backtest_outcomes yet, so there are no hit rates or performance metrics to show.`;
+      }
       return;
     }
-    bt.outcomes.hidden = false;
-    bt.noOutcomes.hidden = true;
-    bt.horizons.innerHTML = data.horizons.map((h) =>
-      `<button type="button" class="chip" data-horizon="${h}" aria-pressed="false">${h} yr</button>`
-    ).join("");
+    if (bt.outcomes) bt.outcomes.hidden = false;
+    if (bt.noOutcomes) bt.noOutcomes.hidden = true;
+    if (bt.horizons) {
+      bt.horizons.innerHTML = data.horizons.map((h) =>
+        `<button type="button" class="chip" data-horizon="${h}" aria-pressed="false">${h} yr</button>`
+      ).join("");
+    }
     renderHorizon(data.ticker, data.default_horizon);
   }
 
@@ -441,7 +467,7 @@
     try {
       const resp = await fetch(`/api/backtest/${encodeURIComponent(ticker)}`);
       const data = await resp.json();
-      if (btRequested !== ticker) return; // a newer search superseded this one
+      if (btRequested !== ticker) return;
       if (!resp.ok) throw new Error(`Request failed (${resp.status})`);
       renderBacktest(data);
     } catch (err) {
@@ -449,62 +475,70 @@
     }
   }
 
-  bt.horizons.addEventListener("click", (e) => {
-    const chip = e.target.closest(".chip");
-    if (!chip || !btData || !btData.available) return;
-    renderHorizon(btData.ticker, Number(chip.dataset.horizon));
-  });
+  if (bt.horizons) {
+    bt.horizons.addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip || !btData || !btData.available) return;
+      renderHorizon(btData.ticker, Number(chip.dataset.horizon));
+    });
+  }
 
   function render(data) {
     currentData = data;
 
-    els.name.textContent = data.name || data.ticker;
-    els.ticker.textContent = data.ticker;
-    els.sector.textContent = [data.sector, data.industry].filter(Boolean).join(" — ");
-    els.price.textContent = fmtMoney(data.current_price);
-    els.sticker.textContent = fmtMoney(data.sticker.sticker_price);
-    els.mos.textContent = fmtMoney(data.sticker.mos_price);
+    if (els.name) els.name.textContent = data.name || data.ticker;
+    if (els.ticker) els.ticker.textContent = data.ticker;
+    if (els.sector) els.sector.textContent = [data.sector, data.industry].filter(Boolean).join(" — ");
+    if (els.price) els.price.textContent = fmtMoney(data.current_price);
+    if (els.sticker && data.sticker) els.sticker.textContent = fmtMoney(data.sticker.sticker_price);
+    if (els.mos && data.sticker) els.mos.textContent = fmtMoney(data.sticker.mos_price);
 
-    els.verdict.textContent = data.sticker.verdict || "No verdict available.";
-    els.verdict.className = `verdict-pill ${verdictClass(data.sticker.verdict)}`;
-
-    if (data.warnings && data.warnings.length) {
-      els.warningBanner.hidden = false;
-      els.warningBanner.textContent = data.warnings.join(" ");
-    } else {
-      els.warningBanner.hidden = true;
-      els.warningBanner.textContent = "";
+    if (els.verdict && data.sticker) {
+      els.verdict.textContent = data.sticker.verdict || "No verdict available.";
+      els.verdict.className = `verdict-pill ${verdictClass(data.sticker.verdict)}`;
     }
 
-    renderBigFive(data.big_five);
-    selectBigFiveMetric(activeMetric && data.big_five[activeMetric] ? activeMetric : "sales");
+    if (els.warningBanner) {
+      if (data.warnings && data.warnings.length) {
+        els.warningBanner.hidden = false;
+        els.warningBanner.textContent = data.warnings.join(" ");
+      } else {
+        els.warningBanner.hidden = true;
+        els.warningBanner.textContent = "";
+      }
+    }
 
-    els.moatRatio.textContent = `${data.moat.green_count} / ${data.moat.total}`;
-    els.moatImage.src = `/api/moat/${data.moat.level}.png`;
-    els.moatImage.alt = `Castle graphic showing ${data.moat.green_count} of ${data.moat.total} Big Five numbers green`;
+    if (data.big_five) {
+      renderBigFive(data.big_five);
+      selectBigFiveMetric(activeMetric && data.big_five[activeMetric] ? activeMetric : "sales");
+    }
+
+    if (data.moat) {
+      if (els.moatRatio) els.moatRatio.textContent = `${data.moat.green_count} / ${data.moat.total}`;
+      if (els.moatImage) {
+        els.moatImage.src = `/api/moat/${data.moat.level}.png`;
+        els.moatImage.alt = `Castle graphic showing ${data.moat.green_count} of ${data.moat.total} Big Five numbers green`;
+      }
+    }
 
     const bust = Date.now();
     showImageOrPlaceholder(els.growthChart, els.growthPlaceholder,
       `/api/chart/growth/${encodeURIComponent(data.ticker)}.png?_=${bust}`, data.offline_fallback);
-    // The debt-payback card sits above Leadership in the same column, so its
-    // final height (image vs. placeholder, which differ) has to be settled
-    // before we measure it below -- re-run the fit once it is, in case the
-    // image request resolves after our own immediate measurement.
     showImageOrPlaceholder(els.debtChart, els.debtPlaceholder,
       `/api/chart/debt/${encodeURIComponent(data.ticker)}.png?_=${bust}`, data.offline_fallback,
       fitLeadershipCard);
 
-    renderStickerTable(data.sticker);
+    if (data.sticker) renderStickerTable(data.sticker);
     renderLeadership(data.leadership, data.offline_fallback);
-    // Run after layout settles from the DOM updates above, so the sticker
-    // table and debt card have their final heights before we measure them.
     requestAnimationFrame(fitLeadershipCard);
 
-    els.sourcesList.innerHTML = (data.sources || []).map((url) =>
-      `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a></li>`
-    ).join("") || "<li>No source links available.</li>";
+    if (els.sourcesList) {
+      els.sourcesList.innerHTML = (data.sources || []).map((url) =>
+        `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a></li>`
+      ).join("") || "<li>No source links available.</li>";
+    }
 
-    results.hidden = false;
+    if (results) results.hidden = false;
     renderProjection(data.ticker, data.projection);
     loadBacktest(data.ticker);
   }
@@ -515,9 +549,10 @@
       setError("Type a ticker symbol first.");
       return;
     }
-    input.value = ticker;
+    if (input) input.value = ticker;
     setLoading(ticker);
-    form.querySelector("button").disabled = true;
+    const submitBtn = form ? form.querySelector("button") : null;
+    if (submitBtn) submitBtn.disabled = true;
 
     try {
       const resp = await fetch(`/api/analyze?ticker=${encodeURIComponent(ticker)}`);
@@ -529,23 +564,27 @@
       render(data);
       history.replaceState(null, "", `?ticker=${encodeURIComponent(ticker)}`);
     } catch (err) {
-      results.hidden = true;
+      if (results) results.hidden = true;
       setError(err.message || "Something went wrong fetching that ticker.");
     } finally {
-      form.querySelector("button").disabled = false;
+      if (submitBtn) submitBtn.disabled = false;
     }
   }
 
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    runSearch(input.value);
-  });
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      runSearch(input.value);
+    });
+  }
 
-  quickPicks.addEventListener("click", (e) => {
-    const btn = e.target.closest(".chip");
-    if (!btn) return;
-    runSearch(btn.dataset.ticker);
-  });
+  if (quickPicks) {
+    quickPicks.addEventListener("click", (e) => {
+      const btn = e.target.closest(".chip");
+      if (!btn) return;
+      runSearch(btn.dataset.ticker);
+    });
+  }
 
   let resizeTimer = null;
   window.addEventListener("resize", () => {
@@ -553,7 +592,6 @@
     resizeTimer = setTimeout(fitLeadershipCard, 120);
   });
 
-  // Auto-load a ticker from the URL (?ticker=AAPL) or default to AAPL on first open.
   const params = new URLSearchParams(window.location.search);
   const initial = params.get("ticker") || "AAPL";
   runSearch(initial);

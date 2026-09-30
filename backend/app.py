@@ -23,6 +23,7 @@ from flask import Flask, jsonify, render_template, request, send_file, abort
 
 from rule1.analysis import analyze
 from rule1.metrics import assess_moat
+from rule1.backtest import load_backtest
 from rule1 import report as report_mod
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,7 +43,8 @@ _cache: "dict[str, object]" = {}
 
 # Offline fallback: the 8 tickers scraped earlier in this project, used only
 # if a live yfinance fetch fails (e.g. no network, or Yahoo rate-limits).
-_FALLBACK_PATH = BASE_DIR / "dashboard_data.json"
+# NOTE: dashboard_data.json now lives alongside app.py in backend/.
+_FALLBACK_PATH = Path(__file__).resolve().parent / "dashboard_data.json"
 _fallback_cache = None
 
 
@@ -74,6 +76,9 @@ def _result_to_json(result) -> dict:
 
     debt_years = result.debt_years
     debt_unpayable = debt_years == float("inf")
+
+    sticker_marr = getattr(result.sticker, "marr", 0.15)
+    sticker_implied = getattr(result.sticker, "implied_annual_return", None)
 
     return {
         "ticker": company.ticker,
@@ -110,6 +115,7 @@ def _result_to_json(result) -> dict:
         "sticker": {
             "current_eps": result.sticker.current_eps,
             "growth_rate": result.sticker.growth_rate,
+            "marr": sticker_marr,
             "growth_rate_source": result.sticker.growth_rate_source,
             "default_pe": result.sticker.default_pe,
             "historical_pe": result.sticker.historical_pe,
@@ -120,6 +126,17 @@ def _result_to_json(result) -> dict:
             "mos_price": result.sticker.mos_price,
             "current_price": result.sticker.current_price,
             "verdict": result.sticker.verdict,
+        },
+        "projection": {
+            "marr": sticker_marr,
+            "implied_annual_return": sticker_implied,
+            "live": True,
+            "current_price": company.current_price,
+            "future_price": result.sticker.future_price,
+            "sticker_price": result.sticker.sticker_price,
+            "growth_rate": result.sticker.growth_rate,
+            "rule1_pe": result.sticker.rule1_pe,
+            "years": 10,
         },
         "leadership": company.officers,
         "sources": company.source_urls,
@@ -148,6 +165,8 @@ def _fallback_to_json(ticker: str) -> "dict | None":
         for key, block in data["big_five"].items()
     }
 
+    sticker_data = data.get("sticker", {})
+
     return {
         "ticker": data["ticker"],
         "name": data["name"],
@@ -169,7 +188,18 @@ def _fallback_to_json(ticker: str) -> "dict | None":
         "big_five": big_five,
         "debt": data["debt"],
         "moat": data["moat"],
-        "sticker": data["sticker"],
+        "sticker": sticker_data,
+        "projection": {
+            "marr": sticker_data.get("marr", 0.15),
+            "implied_annual_return": None,
+            "live": False,
+            "current_price": data.get("current_price"),
+            "future_price": sticker_data.get("future_price"),
+            "sticker_price": sticker_data.get("sticker_price"),
+            "growth_rate": sticker_data.get("growth_rate"),
+            "rule1_pe": sticker_data.get("rule1_pe"),
+            "years": 10,
+        },
         "leadership": [],  # not part of the offline cache -- live fetch only
         "sources": data.get("sources", []),
         "warnings": ["Live data wasn't reachable -- showing cached figures from an earlier pull."],
@@ -209,6 +239,28 @@ def api_analyze():
         return jsonify({
             "error": f"Couldn't fetch or compute data for \"{ticker_u}\": {exc}",
         }), 502
+
+
+@app.route("/api/backtest/<ticker>")
+def api_backtest(ticker: str):
+    """Return backtest data for a ticker from the local SQLite DB.
+
+    If no data exists (no DB, no rows for that ticker), returns a JSON
+    payload with {"available": false, "reason": ...} so the front end can
+    show a friendly message instead of a hard error.
+    """
+    ticker_u = ticker.strip().upper()
+    if not ticker_u:
+        return jsonify({"ticker": "", "available": False, "reason": "No ticker provided."}), 400
+    try:
+        data = load_backtest(ticker_u)
+        return jsonify(data)
+    except Exception as exc:  # noqa: BLE001 -- surface any load failure to the UI
+        return jsonify({
+            "ticker": ticker_u,
+            "available": False,
+            "reason": f"Backtest unavailable: {exc}",
+        })
 
 
 @app.route("/api/chart/growth/<ticker>.png")
