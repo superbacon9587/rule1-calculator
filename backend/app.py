@@ -22,16 +22,19 @@ from pathlib import Path
 from flask import Flask, jsonify, render_template, request, send_file, abort
 
 from rule1.analysis import analyze
-from rule1.metrics import MARR, PROJECTION_YEARS, assess_moat, implied_annual_return
+from rule1.metrics import assess_moat
 from rule1 import report as report_mod
-from rule1.backtest import DEFAULT_DB_PATH, load_backtest
 
-BASE_DIR = Path(__file__).resolve().parent
-ASSETS_DIR = BASE_DIR / "assets"
-# Read-only source for the Backtest card (backtest_signals / backtest_outcomes).
-BACKTEST_DB_PATH = DEFAULT_DB_PATH
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+ASSETS_DIR = FRONTEND_DIR / "assets"
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=str(FRONTEND_DIR / "templates"),
+    static_folder=str(FRONTEND_DIR / "static"),
+    static_url_path="/static"
+)
 
 # In-memory cache so re-typing a ticker (or switching between the growth
 # chart and debt gauge) doesn't refetch/recompute every time.
@@ -53,25 +56,6 @@ def _load_fallback():
     return _fallback_cache
 
 
-def _projection_json(sticker: dict, live: bool) -> dict:
-    """"Projected return if bought now" for the Backtest card: today's price
-    against the Sticker Price walk-through's 10-year future price, next to
-    the flat MARR the Sticker Price is discounted at. `sticker` is the
-    compute_sticker_price() output already in the analyze payload."""
-    return {
-        "live": live,
-        "marr": MARR,
-        "years": PROJECTION_YEARS,
-        "current_price": sticker.get("current_price"),
-        "sticker_price": sticker.get("sticker_price"),
-        "future_price": sticker.get("future_price"),
-        "growth_rate": sticker.get("growth_rate"),
-        "rule1_pe": sticker.get("rule1_pe"),
-        "implied_annual_return": implied_annual_return(
-            sticker.get("current_price"), sticker.get("future_price")) if live else None,
-    }
-
-
 def _result_to_json(result) -> dict:
     company = result.company
 
@@ -91,7 +75,7 @@ def _result_to_json(result) -> dict:
     debt_years = result.debt_years
     debt_unpayable = debt_years == float("inf")
 
-    payload = {
+    return {
         "ticker": company.ticker,
         "name": company.name,
         "sector": company.sector,
@@ -142,8 +126,6 @@ def _result_to_json(result) -> dict:
         "warnings": company.warnings,
         "offline_fallback": False,
     }
-    payload["projection"] = _projection_json(payload["sticker"], live=True)
-    return payload
 
 
 def _fallback_to_json(ticker: str) -> "dict | None":
@@ -192,8 +174,6 @@ def _fallback_to_json(ticker: str) -> "dict | None":
         "sources": data.get("sources", []),
         "warnings": ["Live data wasn't reachable -- showing cached figures from an earlier pull."],
         "offline_fallback": True,
-        # Cached figures aren't today's price, so no "if bought now" number.
-        "projection": _projection_json(data["sticker"], live=False),
     }
 
 
@@ -229,13 +209,6 @@ def api_analyze():
         return jsonify({
             "error": f"Couldn't fetch or compute data for \"{ticker_u}\": {exc}",
         }), 502
-
-
-@app.route("/api/backtest/<ticker>")
-def api_backtest(ticker: str):
-    # Not cached: the backtest tables are rewritten by a separate pipeline,
-    # and this is a couple of small local queries.
-    return jsonify(load_backtest(ticker, BACKTEST_DB_PATH))
 
 
 @app.route("/api/chart/growth/<ticker>.png")

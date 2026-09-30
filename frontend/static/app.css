@@ -1,0 +1,824 @@
+/* ============================================================
+   Rule #1 Calculator -- local dashboard
+   Design tokens
+   Color:  pure white ground so chart images (rendered on a white
+           matplotlib surface) blend seamlessly into the page,
+           deep-emerald accent (growth/vault), bronze secondary
+           accent, ink/muted text scale, and the dataviz skill's
+           fixed status palette for signal color.
+   Type:   Fraunces (display) / IBM Plex Sans (body) / IBM Plex Mono
+           (tickers, prices, tabular figures).
+   Layout: full-width dashboard grid, sized to its content instead
+           of a narrow centered column -- minimal scrolling.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+  --bg:            #ffffff;
+  --surface:       #ffffff;
+  --surface-raised:#f7f7f5;
+  --ink:           #191712;
+  --ink-secondary: #55534a;
+  --muted:         #8c8a7d;
+  --border:        rgba(25, 23, 18, 0.11);
+  --border-strong: rgba(25, 23, 18, 0.18);
+
+  --accent:        #0f6b4c;
+  --accent-dim:    #b9762a;
+  --accent-wash:   rgba(15, 107, 76, 0.08);
+
+  --good:          #0ca30c;
+  --good-text:     #006300;
+  --warning:       #b5790f;
+  --serious:       #b8552d;
+  --critical:      #b32d2d;
+
+  --shadow-card: 0 1px 2px rgba(25,23,18,0.04), 0 4px 14px -8px rgba(25,23,18,0.10);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg:            #100f0c;
+    --surface:       #1a1815;
+    --surface-raised:#201e1a;
+    --ink:           #f6f4ee;
+    --ink-secondary: #c7c4b6;
+    --muted:         #948f80;
+    --border:        rgba(246, 244, 238, 0.10);
+    --border-strong: rgba(246, 244, 238, 0.18);
+
+    --accent:        #2fbf8a;
+    --accent-dim:    #d99a4e;
+    --accent-wash:   rgba(47, 191, 138, 0.12);
+
+    --good:          #35c235;
+    --good-text:     #35c235;
+    --warning:       #ecb44a;
+    --serious:       #e3865e;
+    --critical:      #e2645f;
+
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -12px rgba(0,0,0,0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:            #100f0c;
+  --surface:       #1a1815;
+  --surface-raised:#201e1a;
+  --ink:           #f6f4ee;
+  --ink-secondary: #c7c4b6;
+  --muted:         #948f80;
+  --border:        rgba(246, 244, 238, 0.10);
+  --border-strong: rgba(246, 244, 238, 0.18);
+
+  --accent:        #2fbf8a;
+  --accent-dim:    #d99a4e;
+  --accent-wash:   rgba(47, 191, 138, 0.12);
+
+  --good:          #35c235;
+  --good-text:     #35c235;
+  --warning:       #ecb44a;
+  --serious:       #e3865e;
+  --critical:      #e2645f;
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -12px rgba(0,0,0,0.6);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;
+}
+
+h1, h2 {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  margin: 0;
+}
+
+code, .mono, #current-price, #sticker-price, #mos-price,
+.ticker-pill, .figure-value, .stat-value, .sticker-table td.value {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- topbar (brand + search, one row) ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0.85rem 1.75rem;
+}
+
+.topbar-inner {
+  max-width: 1560px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.brand-mark { display: inline-flex; }
+
+.brand-name {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+#search-form {
+  display: flex;
+  flex: 1 1 320px;
+  max-width: 420px;
+  gap: 0.5rem;
+}
+
+#ticker-input {
+  flex: 1;
+  min-width: 0;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+#ticker-input::placeholder {
+  text-transform: none;
+  color: var(--muted);
+  font-family: "IBM Plex Sans", sans-serif;
+  letter-spacing: normal;
+}
+
+#ticker-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+#search-form button {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
+}
+
+#search-form button:hover { filter: brightness(1.08); }
+#search-form button:active { filter: brightness(0.95); }
+#search-form button:disabled { opacity: 0.6; cursor: progress; }
+
+.quick-picks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.chip {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink-secondary);
+  cursor: pointer;
+}
+
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+
+#status-area {
+  max-width: 1560px;
+  margin: 0.5rem auto 0;
+  min-height: 0;
+}
+
+.status-loading, .status-error {
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.status-loading { color: var(--muted); }
+.status-error { color: var(--critical); font-weight: 500; }
+
+/* ---------- main layout ---------- */
+
+main {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 1.5rem 1.75rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* start, not stretch: the Sticker Price card must keep its own natural
+     height so app.js can measure it as a stable anchor. (Stretch would let
+     the Leadership card's content size the whole row, then stretch Sticker
+     Price to match -- circular, and it defeats the fit-to-height JS.) */
+  align-items: start;
+  gap: 1.1rem;
+}
+
+.stacked-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .grid-two { grid-template-columns: 1fr; }
+  .topbar-inner { flex-direction: column; align-items: stretch; }
+  #search-form { max-width: none; }
+  .quick-picks { margin-left: 0; }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.4rem 1.6rem;
+  box-shadow: var(--shadow-card);
+}
+
+.card-head { margin-bottom: 1rem; }
+
+.card h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.2rem;
+}
+
+.card-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+/* ---------- header card ---------- */
+
+.header-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.3rem 1.6rem;
+}
+
+.header-card-main h1 {
+  font-size: 1.55rem;
+  margin-bottom: 0.3rem;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.ticker-pill {
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 6px;
+}
+
+.sector-text {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.header-card-figures {
+  display: flex;
+  gap: 1.6rem;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.figure-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.figure-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.verdict-pill {
+  flex-basis: 100%;
+  font-size: 0.86rem;
+  font-weight: 500;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--ink-secondary);
+}
+
+.verdict-pill.verdict-good {
+  color: var(--good-text);
+  background: color-mix(in srgb, var(--good) 12%, transparent);
+  border-color: color-mix(in srgb, var(--good) 35%, transparent);
+}
+
+.verdict-pill.verdict-warning {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+}
+
+.verdict-pill.verdict-critical {
+  color: var(--critical);
+  background: color-mix(in srgb, var(--critical) 12%, transparent);
+  border-color: color-mix(in srgb, var(--critical) 35%, transparent);
+}
+
+/* ---------- warning banner ---------- */
+
+.warning-banner {
+  font-size: 0.86rem;
+  padding: 0.6rem 0.95rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  color: var(--warning);
+}
+
+/* ---------- Big Five stat grid (clickable) ---------- */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.7rem;
+}
+
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+}
+
+.stat-tile {
+  font-family: inherit;
+  text-align: left;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  background: var(--surface-raised);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.12s ease, transform 0.12s ease;
+}
+
+.stat-tile:hover { border-color: var(--border-strong); }
+
+.stat-tile::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--muted);
+}
+
+.stat-tile.is-green::before { background: var(--good); }
+.stat-tile.is-red::before { background: var(--critical); }
+
+.stat-tile.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.stat-name {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.stat-value.is-green { color: var(--good-text); }
+.stat-value.is-red { color: var(--critical); }
+
+.stat-window {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.bigfive-detail {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.chart-placeholder {
+  color: var(--muted);
+  font-size: 0.88rem;
+  padding: 1.5rem 0;
+  text-align: center;
+  margin: 0;
+}
+
+/* ---------- Leadership (stacked under Debt payback; fills to the
+   Sticker Price card's height exactly -- see .stacked-col) ---------- */
+
+.leadership-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.leadership-card .card-head { margin-bottom: 0.6rem; }
+.leadership-card .card-sub { font-size: 0.8rem; }
+
+.leadership-list {
+  /* font-size is set inline by app.js (fitLeadershipCard) so the whole
+     list -- text and spacing alike -- scales as one unit to whatever
+     room is left below the Debt payback card. This value is just the
+     un-scaled starting point. */
+  font-size: 0.84rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3em;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.leadership-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.7em;
+  padding: 0.3em 0;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.25;
+}
+
+.leadership-item:last-child { border-bottom: none; }
+
+.leadership-name {
+  flex: 0 1 auto;
+  font-weight: 600;
+  font-size: 1em;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leadership-name:hover { text-decoration: underline; }
+
+.leadership-title {
+  flex: 0 1 auto;
+  font-size: 0.88em;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leadership-placeholder {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+/* ---------- charts ---------- */
+
+.chart-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.growth-img { aspect-ratio: 11 / 4.4; }
+.debt-img { aspect-ratio: 9 / 3.1; }
+.bigfive-img { aspect-ratio: 9 / 4.4; }
+
+/* ---------- sticker price table ---------- */
+
+.table-wrap { overflow-x: auto; }
+
+.sticker-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.sticker-table td {
+  padding: 0.55rem 0.2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sticker-table td.label {
+  color: var(--ink-secondary);
+}
+
+.sticker-table td.value {
+  text-align: right;
+  font-weight: 600;
+}
+
+.sticker-table tr.total td {
+  font-size: 1.05rem;
+  border-top: 2px solid var(--border-strong);
+  border-bottom: none;
+  padding-top: 0.75rem;
+}
+
+.sticker-table tr.total td.label { color: var(--ink); font-weight: 600; }
+.sticker-table tr.mos td.value { color: var(--accent); }
+.sticker-table tr:last-child td { border-bottom: none; }
+
+/* ---------- moat card (last section) ---------- */
+
+.moat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2.5rem 1.6rem 3rem;
+}
+
+.moat-ratio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  margin-bottom: 1.25rem;
+}
+
+.moat-ratio-value {
+  font-family: "Fraunces", serif;
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.moat-ratio-caption {
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.moat-image {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  display: block;
+}
+
+/* ---------- sources ---------- */
+
+.sources-card ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--ink-secondary);
+  font-size: 0.86rem;
+}
+
+.sources-card li { margin-bottom: 0.3rem; word-break: break-all; }
+.sources-card a { color: var(--accent); }
+
+/* ---------- footer ---------- */
+
+footer {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 0 1.75rem 2.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+footer code {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+}
+
+/* ---------- backtest card ---------- */
+
+.bt-status { margin: 0; }
+
+/* Live "projected return if bought now" -- sits above the historical data. */
+.bt-projection {
+  padding-bottom: 1.2rem;
+  margin-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.bt-projection-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 1.4fr);
+  gap: 0.8rem 1.4rem;
+  align-items: start;
+}
+
+.bt-projection .figure-value.is-green { color: var(--good-text); }
+.bt-projection .figure-value.is-red { color: var(--critical); }
+
+.bt-disclaimer {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  border-radius: 6px;
+}
+
+.bt-projection .bt-src { margin-top: 0.6rem; }
+
+@media (max-width: 700px) {
+  .bt-projection-row { grid-template-columns: 1fr; }
+}
+
+.bt-subhead {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-secondary);
+  margin: 0 0 0.7rem;
+}
+
+.bt-figures {
+  display: grid;
+  grid-template-columns: 1.3fr repeat(3, 1fr) 1.6fr;
+  gap: 0.7rem 1.4rem;
+}
+
+@media (max-width: 900px) {
+  .bt-figures { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
+
+.bt-note {
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+/* One "where this came from" line per number. */
+.bt-sources {
+  list-style: none;
+  margin: 0.8rem 0 1.4rem;
+  padding: 0;
+}
+
+.bt-sources li, .bt-src {
+  font-size: 0.74rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.bt-sources li::before { content: "Source: "; color: var(--ink-secondary); }
+
+.bt-horizon-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 1.1rem;
+}
+
+.bt-horizons { display: flex; gap: 0.35rem; }
+
+.bt-horizons .chip.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-wash);
+}
+
+.bt-stat-grid { grid-template-columns: repeat(3, 1fr); margin-bottom: 1.2rem; }
+.bt-stat-grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 900px) {
+  .bt-stat-grid, .bt-stat-grid-4 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+}
+
+.bt-tile { cursor: default; }
+.bt-tile:hover { border-color: var(--border); }
+.bt-tile .bt-src { margin-top: 0.45rem; }
+
+.bt-rows summary {
+  cursor: pointer;
+  font-size: 0.84rem;
+  color: var(--accent);
+}
+
+.bt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-top: 0.6rem;
+}
+
+.bt-table th, .bt-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bt-table th {
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.bt-table td {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.bt-table th:first-child, .bt-table td:first-child { text-align: left; }
+.bt-table td.is-yes { color: var(--good-text); }
+.bt-table td.is-no { color: var(--critical); }

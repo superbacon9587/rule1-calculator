@@ -17,3 +17,5 @@ rule1_output/
 .vscode/
 .idea/
 rule1.db
+_pycache_/
+*.pyc
