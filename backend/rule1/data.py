@@ -67,6 +67,7 @@ class CompanyData:
 
     officers: "list[dict]" = field(default_factory=list)  # [{"name": ..., "title": ...}, ...]
 
+    data_source: str = "yahoo"  # "yahoo" (live yfinance) or "rule1.db" (see db_data.py)
     source_urls: "list[str]" = field(default_factory=list)
     warnings: "list[str]" = field(default_factory=list)
 

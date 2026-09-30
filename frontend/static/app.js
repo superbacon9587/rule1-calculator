@@ -47,7 +47,7 @@
   }
 
   function setLoading(ticker) {
-    statusArea.innerHTML = `<div class="status-loading">Fetching live filings for <strong>${escapeHtml(ticker)}</strong>&hellip;</div>`;
+    statusArea.innerHTML = `<div class="status-loading">Loading filings for <strong>${escapeHtml(ticker)}</strong>&hellip;</div>`;
   }
 
   function setError(message) {
@@ -533,8 +533,10 @@
     requestAnimationFrame(fitLeadershipCard);
 
     if (els.sourcesList) {
-      els.sourcesList.innerHTML = (data.sources || []).map((url) =>
-        `<li><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a></li>`
+      els.sourcesList.innerHTML = (data.sources || []).map((src) =>
+        /^https?:\/\//.test(src)
+          ? `<li><a href="${escapeHtml(src)}" target="_blank" rel="noopener">${escapeHtml(src)}</a></li>`
+          : `<li>${escapeHtml(src)}</li>`
       ).join("") || "<li>No source links available.</li>";
     }
 
