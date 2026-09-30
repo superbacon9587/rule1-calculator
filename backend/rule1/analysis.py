@@ -1,5 +1,5 @@
 """
-Ties data.py (scraping) and metrics.py (math) together into one
+Ties data.py (scraping) / db_data.py (local rule1.db) and metrics.py (math) together into one
 per-company AnalysisResult, which report.py then prints / charts / compares.
 """
 
@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from .data import CompanyData, fetch_company_data
+from .db_data import db_covers, fetch_company_data_from_db
 from .metrics import (
     growth_rate_windows, average_windows, debt_payback_years, compute_sticker_price,
     is_green, debt_color, assess_moat, StickerPriceResult, MoatAssessment,
@@ -45,9 +46,18 @@ def _metric(label: str, series: "dict[int, float]", use_average: bool = False) -
                           longest_value=value, green=is_green(value))
 
 
-def analyze(ticker: str, years: int = 10) -> AnalysisResult:
-    company = fetch_company_data(ticker, years=years)
+def load_company(ticker: str, years: int = 10) -> CompanyData:
+    """rule1.db for the tickers it covers, live yfinance for everything else."""
+    if db_covers(ticker):
+        return fetch_company_data_from_db(ticker)
+    return fetch_company_data(ticker, years=years)
 
+
+def analyze(ticker: str, years: int = 10) -> AnalysisResult:
+    return analyze_company(load_company(ticker, years=years))
+
+
+def analyze_company(company: CompanyData) -> AnalysisResult:
     sales = _metric("Sales growth", company.sales_by_year)
     eps = _metric("EPS growth", company.eps_by_year)
     equity = _metric("Equity (BVPS) growth", company.equity_by_year)

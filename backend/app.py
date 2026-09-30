@@ -3,8 +3,9 @@ Local Rule #1 dashboard.
 
 Run with `python app.py`, then open http://127.0.0.1:5000 in a browser.
 This is a local-only Flask app: nothing here is published or hosted
-anywhere, and no data leaves your machine except the live request to
-Yahoo Finance for whatever ticker you type in.
+anywhere. Tickers covered by the local rule1.db (see
+scripts/load_town_dump.py) are read from it; any other ticker you type in
+is fetched live from Yahoo Finance, the only data that leaves your machine.
 
 The heavy lifting (fetching statements, computing the Big Five, the
 Sticker Price, the moat rating) is entirely the already-tested `rule1`
@@ -22,7 +23,7 @@ from pathlib import Path
 from flask import Flask, jsonify, render_template, request, send_file, abort
 
 from rule1.analysis import analyze
-from rule1.metrics import assess_moat
+from rule1.metrics import MARR, assess_moat, implied_annual_return
 from rule1.backtest import load_backtest
 from rule1 import report as report_mod
 
@@ -77,8 +78,8 @@ def _result_to_json(result) -> dict:
     debt_years = result.debt_years
     debt_unpayable = debt_years == float("inf")
 
-    sticker_marr = getattr(result.sticker, "marr", 0.15)
-    sticker_implied = getattr(result.sticker, "implied_annual_return", None)
+    sticker_marr = MARR
+    sticker_implied = implied_annual_return(result.sticker.current_price, result.sticker.future_price)
 
     return {
         "ticker": company.ticker,
@@ -141,6 +142,7 @@ def _result_to_json(result) -> dict:
         "leadership": company.officers,
         "sources": company.source_urls,
         "warnings": company.warnings,
+        "data_source": company.data_source,
         "offline_fallback": False,
     }
 
@@ -203,12 +205,13 @@ def _fallback_to_json(ticker: str) -> "dict | None":
         "leadership": [],  # not part of the offline cache -- live fetch only
         "sources": data.get("sources", []),
         "warnings": ["Live data wasn't reachable -- showing cached figures from an earlier pull."],
+        "data_source": "dashboard_data.json",
         "offline_fallback": True,
     }
 
 
 def _get_result(ticker: str):
-    """Live-fetch + compute, cached in memory. Raises on failure."""
+    """Load (rule1.db or live yfinance) + compute, cached in memory. Raises on failure."""
     ticker = ticker.strip().upper()
     if not ticker:
         raise ValueError("Enter a ticker symbol.")
