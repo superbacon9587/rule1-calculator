@@ -17,43 +17,43 @@ sys.path.insert(0, str(ROOT))
 from rule1.db_data import db_covers, fetch_company_data_from_db
 from rule1.analysis import analyze_company
 
-# FY2012..FY2024 (13 year ends), a 2:1 split between FY2019 and FY2020 (ajex 2 -> 1).
+# FY2012..FY2024 (13 fiscal years), a 2:1 split between FY2019 and FY2020 (ajex 2 -> 1).
 YEARS = list(range(2012, 2025))
 
 
 def _build_db(tmp: str) -> Path:
     db = Path(tmp) / "rule1.db"
     conn = sqlite3.connect(db)
-    conn.execute("CREATE TABLE companies (ticker, permno, gvkey, cusip, name, currency)")
-    conn.execute("INSERT INTO companies VALUES ('TST', '1', '000001', '00000000', 'TEST CO', 'USD')")
-    conn.execute("CREATE TABLE fundamentals_annual (ticker, datadate, revt, epsfx, ni, cshfd, seq, csho, ajex, "
-                 "oancf, capx, dltt, pi, xint, txt)")
+    conn.execute("CREATE TABLE companies (ticker, permno, gvkey)")
+    conn.execute("INSERT INTO companies VALUES ('TST', 1, '000001')")
+    conn.execute("CREATE TABLE fundamentals_annual (ticker, fyear, revt, eps_diluted, ceq, csho, ajex, "
+                 "oancf, capx, dltt, ebit)")
     for i, y in enumerate(YEARS):
         ajex = 2.0 if y < 2020 else 1.0
-        conn.execute("INSERT INTO fundamentals_annual VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (
-            "TST", f"{y}-06-30",
+        conn.execute("INSERT INTO fundamentals_annual VALUES (?,?,?,?,?,?,?,?,?,?,?)", (
+            "TST", y,
             100.0 * 1.1 ** i,            # revt ($M)
-            2.0 * 1.1 ** i * ajex,       # epsfx, as reported (pre-split years are 2x)
-            None, None,
-            500.0 * 1.1 ** i,            # seq ($M)
+            2.0 * 1.1 ** i * ajex,       # eps_diluted, as reported (pre-split years are 2x)
+            500.0 * 1.1 ** i,            # ceq ($M)
             100.0 / ajex,                # csho (M), as reported
             ajex,
             80.0, 30.0,                  # oancf, capx (capx positive, Compustat style)
             200.0,                       # dltt
-            120.0, None if y == 2024 else 10.0, 26.0,  # pi, xint (blank in FY2024), txt
+            130.0,                       # ebit
         ))
-    conn.execute("CREATE TABLE fundamentals_quarterly (ticker, datadate, epsf12, ajexq)")
-    conn.execute("INSERT INTO fundamentals_quarterly VALUES ('TST', '2024-03-31', 5.0, 1.0)")
-    conn.execute("INSERT INTO fundamentals_quarterly VALUES ('TST', '2024-06-30', 6.0, 1.0)")
+    conn.execute("CREATE TABLE fundamentals_quarterly (ticker, fyearq, fqtr, eps_ttm)")
+    conn.execute("INSERT INTO fundamentals_quarterly VALUES ('TST', 2023, 4, 4.0)")
+    conn.execute("INSERT INTO fundamentals_quarterly VALUES ('TST', 2024, 2, 6.0)")
+    conn.execute("INSERT INTO fundamentals_quarterly VALUES ('TST', 2024, 1, 5.0)")
+    conn.execute("INSERT INTO fundamentals_quarterly VALUES ('TST', 2024, 3, NULL)")
     conn.execute("CREATE TABLE analyst_growth (ticker, statpers, meanest, medest)")
     conn.execute("INSERT INTO analyst_growth VALUES ('TST', '2024-05-16', 9.0, 9.5)")
     conn.execute("INSERT INTO analyst_growth VALUES ('TST', '2024-06-20', 12.0, 12.5)")
-    conn.execute("CREATE TABLE prices_daily (ticker, date, close, cfacpr)")
+    conn.execute("CREATE TABLE prices_daily (ticker, date, adj_close)")
     for y in YEARS:
-        cfacpr = 2.0 if y < 2020 else 1.0
         for m in range(1, 13):
-            conn.execute("INSERT INTO prices_daily VALUES ('TST', ?, ?, ?)", (f"{y}-{m:02d}-15", 999.0, cfacpr))
-            conn.execute("INSERT INTO prices_daily VALUES ('TST', ?, ?, ?)", (f"{y}-{m:02d}-28", 40.0 * cfacpr, cfacpr))
+            conn.execute("INSERT INTO prices_daily VALUES ('TST', ?, ?)", (f"{y}-{m:02d}-15", 999.0))
+            conn.execute("INSERT INTO prices_daily VALUES ('TST', ?, ?)", (f"{y}-{m:02d}-28", 40.0))
     conn.commit()
     conn.close()
     return db
@@ -72,7 +72,7 @@ def test_db_covers_only_loaded_tickers():
         assert not db_covers("TST", Path(tmp) / "missing.db")
 
 
-def test_window_is_ten_years_of_year_ends():
+def test_window_is_ten_years_of_fiscal_years():
     c = _load()
     assert sorted(c.sales_by_year) == list(range(2014, 2025)), sorted(c.sales_by_year)
 
@@ -97,20 +97,17 @@ def test_fcf_debt_and_units():
     assert c.long_term_debt == 200.0e6
 
 
-def test_roic_uses_pretax_plus_interest_as_ebit():
+def test_roic_uses_db_ebit_and_fallback_tax_rate():
     c = _load()
+    # rule1.db has no pretax income -> compute_roic's 21% fallback, with a warning
     equity = 500.0 * 1.1 ** (2023 - 2012)
-    expected = (120.0 + 10.0) * (1 - 26.0 / 120.0) / (equity + 200.0)
-    assert math.isclose(c.roic_by_year[2023], expected, rel_tol=1e-9)
-    # FY2024 xint is blank -> EBIT = pretax alone, with a warning
-    equity = 500.0 * 1.1 ** (2024 - 2012)
-    assert math.isclose(c.roic_by_year[2024], 120.0 * (1 - 26.0 / 120.0) / (equity + 200.0), rel_tol=1e-9)
-    assert any("xint" in w for w in c.warnings)
+    assert math.isclose(c.roic_by_year[2023], 130.0 * (1 - 0.21) / (equity + 200.0), rel_tol=1e-9)
+    assert any("pretax" in w for w in c.warnings)
 
 
-def test_pe_uses_split_adjusted_month_end_closes():
+def test_pe_uses_month_end_adj_closes():
     c = _load()
-    # month-end close is 40 on today's basis every year; mid-month 999 is ignored
+    # month-end adj_close is 40 every year; mid-month 999 is ignored
     assert math.isclose(c.pe_by_year[2024], 40.0 / c.eps_by_year[2024], rel_tol=1e-9)
     assert math.isclose(c.pe_by_year[2015], 40.0 / c.eps_by_year[2015], rel_tol=1e-9)
 

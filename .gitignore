@@ -19,3 +19,5 @@ rule1_output/
 rule1.db
 _pycache_/
 *.pyc
+backend/town_dump_2026-09-14/
+backend/build_rule1_db.py
