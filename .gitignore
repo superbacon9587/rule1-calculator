@@ -16,8 +16,9 @@ rule1_output/
 .DS_Store
 .vscode/
 .idea/
-rule1.db
 _pycache_/
 *.pyc
-backend/town_dump_2026-09-14/
-backend/build_rule1_db.py
+
+# Generated database (built by backend/build_rule1_db.py) and the raw WRDS dump it reads
+rule1.db
+town_dump_2026-09-14/
