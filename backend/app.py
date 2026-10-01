@@ -4,7 +4,7 @@ Local Rule #1 dashboard.
 Run with `python app.py`, then open http://127.0.0.1:5000 in a browser.
 This is a local-only Flask app: nothing here is published or hosted
 anywhere. Tickers covered by the local rule1.db (see
-scripts/load_town_dump.py) are read from it; any other ticker you type in
+build_rule1_db.py) are read from it; any other ticker you type in
 is fetched live from Yahoo Finance, the only data that leaves your machine.
 
 The heavy lifting (fetching statements, computing the Big Five, the
