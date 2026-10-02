@@ -1,6 +1,7 @@
 """
 Tests for rule1/db_data.py, run against a tiny throwaway rule1.db built
-here (never the real one), checking the yfinance -> rule1.db field mapping.
+here (never the real one), checking the rule1.db field mapping, plus the
+rule that the app serves only SUPPORTED_TICKERS and never imports yfinance.
 
 Run with: python tests/test_db_data.py
 """
@@ -14,8 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from rule1.db_data import db_covers, fetch_company_data_from_db
-from rule1.analysis import analyze_company
+from rule1.db_data import SUPPORTED_TICKERS, UnsupportedTickerError, db_covers, fetch_company_data_from_db
+from rule1.analysis import analyze_company, load_company
 
 # FY2012..FY2024 (13 fiscal years), a 2:1 split between FY2019 and FY2020 (ajex 2 -> 1).
 YEARS = list(range(2012, 2025))
@@ -118,6 +119,42 @@ def test_current_values_use_latest_rows():
     assert c.current_eps == 6.0
     assert math.isclose(c.analyst_growth_estimate, 0.12)
     assert c.data_source == "rule1.db"
+
+
+def test_unsupported_ticker_raises_friendly_error_listing_supported():
+    try:
+        load_company("tsla")
+    except UnsupportedTickerError as e:
+        msg = str(e)
+    else:
+        raise AssertionError("load_company accepted a ticker outside SUPPORTED_TICKERS")
+    assert "TSLA" in msg and "only supports these 12 tickers" in msg, msg
+    assert all(t in msg for t in SUPPORTED_TICKERS), msg
+
+
+def test_api_returns_friendly_error_for_unsupported_ticker():
+    import app as app_module
+    client = app_module.app.test_client()
+    resp = client.get("/api/analyze?ticker=TSLA")
+    assert resp.status_code == 400, resp.status_code
+    body = resp.get_json()
+    assert "only supports these 12 tickers" in body["error"], body
+    assert body["supported_tickers"] == list(SUPPORTED_TICKERS)
+
+
+def test_page_offers_exactly_the_supported_tickers():
+    import app as app_module
+    page = app_module.app.test_client().get("/").data.decode()
+    for t in SUPPORTED_TICKERS:
+        assert f'<option value="{t}">' in page and f'data-ticker="{t}"' in page, t
+    assert page.count("<option value=") == len(SUPPORTED_TICKERS)
+    assert 'data-ticker="COST"' not in page
+
+
+def test_app_never_imports_yfinance():
+    import app as app_module  # noqa: F401 -- pulls in every rule1 module the app uses
+    import rule1.cli  # noqa: F401
+    assert "yfinance" not in sys.modules, "something in the app still imports yfinance"
 
 
 def _run_all():

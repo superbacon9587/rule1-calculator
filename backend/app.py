@@ -3,11 +3,12 @@ Local Rule #1 dashboard.
 
 Run with `python app.py`, then open http://127.0.0.1:5000 in a browser.
 This is a local-only Flask app: nothing here is published or hosted
-anywhere. Tickers covered by the local rule1.db (see
-build_rule1_db.py) are read from it; any other ticker you type in
-is fetched live from Yahoo Finance, the only data that leaves your machine.
+anywhere. All data is read from the local rule1.db (see
+build_rule1_db.py), which covers a fixed set of tickers
+(rule1.db_data.SUPPORTED_TICKERS). Any other ticker gets a friendly error;
+the app never fetches company data over the network.
 
-The heavy lifting (fetching statements, computing the Big Five, the
+The heavy lifting (loading statements, computing the Big Five, the
 Sticker Price, the moat rating) is entirely the already-tested `rule1`
 package -- this file just exposes it over a few HTTP routes and serves
 a small HTML/CSS/JS front end.
@@ -15,8 +16,6 @@ a small HTML/CSS/JS front end.
 from __future__ import annotations
 
 import io
-import json
-import traceback
 from dataclasses import asdict
 from pathlib import Path
 
@@ -25,6 +24,7 @@ from flask import Flask, jsonify, render_template, request, send_file, abort
 from rule1.analysis import analyze
 from rule1.metrics import MARR, assess_moat, implied_annual_return
 from rule1.backtest import load_backtest
+from rule1.db_data import SUPPORTED_TICKERS, UnsupportedTickerError
 from rule1 import report as report_mod
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,25 +39,8 @@ app = Flask(
 )
 
 # In-memory cache so re-typing a ticker (or switching between the growth
-# chart and debt gauge) doesn't refetch/recompute every time.
+# chart and debt gauge) doesn't reload/recompute every time.
 _cache: "dict[str, object]" = {}
-
-# Offline fallback: the 8 tickers scraped earlier in this project, used only
-# if a live yfinance fetch fails (e.g. no network, or Yahoo rate-limits).
-# NOTE: dashboard_data.json now lives alongside app.py in backend/.
-_FALLBACK_PATH = Path(__file__).resolve().parent / "dashboard_data.json"
-_fallback_cache = None
-
-
-def _load_fallback():
-    global _fallback_cache
-    if _fallback_cache is None:
-        if _FALLBACK_PATH.exists():
-            _fallback_cache = json.loads(_FALLBACK_PATH.read_text())
-        else:
-            _fallback_cache = {}
-    return _fallback_cache
-
 
 def _result_to_json(result) -> dict:
     company = result.company
@@ -131,7 +114,6 @@ def _result_to_json(result) -> dict:
         "projection": {
             "marr": sticker_marr,
             "implied_annual_return": sticker_implied,
-            "live": True,
             "current_price": company.current_price,
             "future_price": result.sticker.future_price,
             "sticker_price": result.sticker.sticker_price,
@@ -143,75 +125,11 @@ def _result_to_json(result) -> dict:
         "sources": company.source_urls,
         "warnings": company.warnings,
         "data_source": company.data_source,
-        "offline_fallback": False,
-    }
-
-
-def _fallback_to_json(ticker: str) -> "dict | None":
-    """Reshape a cached dashboard_data.json record into the same shape
-    _result_to_json produces, so the front end doesn't need two code paths."""
-    data = _load_fallback().get(ticker)
-    if not data:
-        return None
-
-    raw = data["raw"]
-    labels = {
-        "roic": "ROIC",
-        "sales": "Sales growth",
-        "eps": "EPS growth",
-        "equity": "Equity (BVPS) growth",
-        "fcf": "Free cash flow growth",
-    }
-    big_five = {
-        key: {**block, "label": labels.get(key, key)}
-        for key, block in data["big_five"].items()
-    }
-
-    sticker_data = data.get("sticker", {})
-
-    return {
-        "ticker": data["ticker"],
-        "name": data["name"],
-        "sector": data.get("sector"),
-        "industry": data.get("industry"),
-        "currency": "USD",
-        "current_price": data.get("current_price"),
-        "current_eps": data.get("current_eps"),
-        "current_pe": None,
-        "data_years_available": len(raw.get("sales_by_year", {})),
-        "series": {
-            "sales": raw.get("sales_by_year", {}),
-            "eps": raw.get("eps_by_year", {}),
-            "equity": raw.get("equity_by_year", {}),
-            "fcf": raw.get("fcf_by_year", {}),
-            "roic": raw.get("roic_by_year", {}),
-            "pe": raw.get("pe_by_year", {}),
-        },
-        "big_five": big_five,
-        "debt": data["debt"],
-        "moat": data["moat"],
-        "sticker": sticker_data,
-        "projection": {
-            "marr": sticker_data.get("marr", 0.15),
-            "implied_annual_return": None,
-            "live": False,
-            "current_price": data.get("current_price"),
-            "future_price": sticker_data.get("future_price"),
-            "sticker_price": sticker_data.get("sticker_price"),
-            "growth_rate": sticker_data.get("growth_rate"),
-            "rule1_pe": sticker_data.get("rule1_pe"),
-            "years": 10,
-        },
-        "leadership": [],  # not part of the offline cache -- live fetch only
-        "sources": data.get("sources", []),
-        "warnings": ["Live data wasn't reachable -- showing cached figures from an earlier pull."],
-        "data_source": "dashboard_data.json",
-        "offline_fallback": True,
     }
 
 
 def _get_result(ticker: str):
-    """Load (rule1.db or live yfinance) + compute, cached in memory. Raises on failure."""
+    """Load from rule1.db + compute, cached in memory. Raises on failure."""
     ticker = ticker.strip().upper()
     if not ticker:
         raise ValueError("Enter a ticker symbol.")
@@ -222,7 +140,7 @@ def _get_result(ticker: str):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", tickers=SUPPORTED_TICKERS)
 
 
 @app.route("/api/analyze")
@@ -235,13 +153,12 @@ def api_analyze():
     try:
         result = _get_result(ticker_u)
         return jsonify(_result_to_json(result))
-    except Exception as exc:  # noqa: BLE001 -- surface any fetch/compute failure to the UI
-        fallback = _fallback_to_json(ticker_u)
-        if fallback:
-            return jsonify(fallback)
+    except UnsupportedTickerError as exc:
+        return jsonify({"error": str(exc), "supported_tickers": list(SUPPORTED_TICKERS)}), 400
+    except Exception as exc:  # noqa: BLE001 -- surface any load/compute failure to the UI
         return jsonify({
-            "error": f"Couldn't fetch or compute data for \"{ticker_u}\": {exc}",
-        }), 502
+            "error": f"Couldn't load or compute data for \"{ticker_u}\": {exc}",
+        }), 500
 
 
 @app.route("/api/backtest/<ticker>")

@@ -7,6 +7,9 @@
   const results = document.getElementById("results");
   const quickPicks = document.getElementById("quick-picks");
 
+  // The only tickers rule1.db covers (rendered into the form by the server).
+  const SUPPORTED_TICKERS = form && form.dataset.tickers ? form.dataset.tickers.split(",") : [];
+
   const BIGFIVE_ORDER = ["roic", "sales", "eps", "equity", "fcf"];
 
   const els = {
@@ -47,7 +50,7 @@
   }
 
   function setLoading(ticker) {
-    statusArea.innerHTML = `<div class="status-loading">Loading filings for <strong>${escapeHtml(ticker)}</strong>&hellip;</div>`;
+    statusArea.innerHTML = `<div class="status-loading">Loading <strong>${escapeHtml(ticker)}</strong>&hellip;</div>`;
   }
 
   function setError(message) {
@@ -72,15 +75,8 @@
     return "verdict-warning";
   }
 
-  function showImageOrPlaceholder(imgEl, placeholderEl, src, offline, onSettled) {
+  function showImageOrPlaceholder(imgEl, placeholderEl, src, onSettled) {
     if (!imgEl || !placeholderEl) return;
-    if (offline) {
-      imgEl.hidden = true;
-      placeholderEl.hidden = false;
-      imgEl.removeAttribute("src");
-      if (onSettled) onSettled();
-      return;
-    }
     imgEl.hidden = false;
     placeholderEl.hidden = true;
     imgEl.onerror = () => {
@@ -104,8 +100,7 @@
     showImageOrPlaceholder(
       els.bigfiveChart,
       els.bigfivePlaceholder,
-      `/api/chart/bigfive/${encodeURIComponent(currentData.ticker)}/${key}.png?_=${bust}`,
-      currentData.offline_fallback
+      `/api/chart/bigfive/${encodeURIComponent(currentData.ticker)}/${key}.png?_=${bust}`
     );
   }
 
@@ -170,16 +165,14 @@
     els.leadershipList.style.justifyContent = stillOverflowing ? "flex-start" : "center";
   }
 
-  function renderLeadership(leadership, offline) {
+  function renderLeadership(leadership) {
     if (!els.leadershipList || !els.leadershipPlaceholder) return;
     const people = (leadership || []).filter((p) => p && p.name);
-    if (offline || !people.length) {
+    if (!people.length) {
       els.leadershipList.innerHTML = "";
       els.leadershipList.hidden = true;
       els.leadershipPlaceholder.hidden = false;
-      els.leadershipPlaceholder.textContent = offline
-        ? "Leadership names aren't available in cached/offline mode."
-        : "No officer data was reported for this ticker.";
+      els.leadershipPlaceholder.textContent = "No officer data was reported for this ticker.";
       return;
     }
     els.leadershipList.hidden = false;
@@ -411,9 +404,7 @@
     }
 
     if (bt.projImpliedNote) {
-      if (!p.live) {
-        bt.projImpliedNote.textContent = "live price unavailable (showing cached data), so no buy-now projection";
-      } else if (r == null) {
+      if (r == null) {
         bt.projImpliedNote.textContent = "needs a current price and a Sticker Price projection";
       } else {
         bt.projImpliedNote.textContent =
@@ -424,7 +415,7 @@
 
     if (bt.srcProj) {
       bt.srcProj.textContent =
-        `Source: live compute_sticker_price() for ${ticker} (growth ${fmtPct(p.growth_rate)}, ` +
+        `Source: compute_sticker_price() using rule1.db's latest recorded price for ${ticker} (growth ${fmtPct(p.growth_rate)}, ` +
         `PE ${p.rule1_pe != null ? p.rule1_pe.toFixed(1) : "n/a"}). Implied return = ` +
         `(future price ÷ today's price)^(1/${p.years}) − 1, dividends excluded. Buying at exactly the ` +
         `Sticker Price gives the ${fmtPct(marr)} MARR.`;
@@ -523,13 +514,13 @@
 
     const bust = Date.now();
     showImageOrPlaceholder(els.growthChart, els.growthPlaceholder,
-      `/api/chart/growth/${encodeURIComponent(data.ticker)}.png?_=${bust}`, data.offline_fallback);
+      `/api/chart/growth/${encodeURIComponent(data.ticker)}.png?_=${bust}`);
     showImageOrPlaceholder(els.debtChart, els.debtPlaceholder,
-      `/api/chart/debt/${encodeURIComponent(data.ticker)}.png?_=${bust}`, data.offline_fallback,
+      `/api/chart/debt/${encodeURIComponent(data.ticker)}.png?_=${bust}`,
       fitLeadershipCard);
 
     if (data.sticker) renderStickerTable(data.sticker);
-    renderLeadership(data.leadership, data.offline_fallback);
+    renderLeadership(data.leadership);
     requestAnimationFrame(fitLeadershipCard);
 
     if (els.sourcesList) {
@@ -552,6 +543,12 @@
       return;
     }
     if (input) input.value = ticker;
+    if (SUPPORTED_TICKERS.length && !SUPPORTED_TICKERS.includes(ticker)) {
+      if (results) results.hidden = true;
+      setError(`Sorry, "${ticker}" isn't available. This app only supports these ` +
+        `${SUPPORTED_TICKERS.length} tickers: ${SUPPORTED_TICKERS.join(", ")}.`);
+      return;
+    }
     setLoading(ticker);
     const submitBtn = form ? form.querySelector("button") : null;
     if (submitBtn) submitBtn.disabled = true;
@@ -567,7 +564,7 @@
       history.replaceState(null, "", `?ticker=${encodeURIComponent(ticker)}`);
     } catch (err) {
       if (results) results.hidden = true;
-      setError(err.message || "Something went wrong fetching that ticker.");
+      setError(err.message || "Something went wrong loading that ticker.");
     } finally {
       if (submitBtn) submitBtn.disabled = false;
     }

@@ -2,4 +2,3 @@ Flask>=3.0
 colorama>=0.4.6 ; platform_system == "Windows"
 gunicorn>=21.2
 matplotlib>=3.7
-yfinance>=0.2.40

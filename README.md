@@ -14,12 +14,13 @@ numbers Phil Town's *Rule #1* uses to judge whether a business is a
 - The **Sticker Price** and **Margin-of-Safety price**, following the exact
   method in Chapter 9
 
-Type a ticker into the search bar and it fetches and computes everything
-live. Everything runs locally on your own machine — nothing here is hosted,
-published, or shared with anyone; the only network traffic is your own
-browser talking to a Flask server on `127.0.0.1`, and that server's own
-request to Yahoo Finance for whatever ticker you type in. There's also a
-plain command-line version if you'd rather not open a browser.
+Pick one of the supported tickers in the search bar and it computes
+everything from the local `rule1.db` database. The app supports exactly
+these 12 tickers: **AAPL, MSFT, KO, JNJ, WMT, PG, XOM, HD, INTC, CSCO, HOG,
+TSM**. Any other ticker gets a friendly "not supported" message. The app
+never contacts Yahoo Finance or any other data site, so it keeps working
+without live scraping. There's also a plain command-line version if you'd
+rather not open a browser.
 
 ## Why these numbers, and where they come from
 
@@ -46,27 +47,20 @@ This tool follows *Rule #1*, chapters 5–9, as closely as the math allows:
   24% growth, PE 46) and gets **Sticker Price $86.97 / MOS $43.49 — matching
   the book to the penny.**
 
-## Data source (the "scraping" part)
+## Data source
 
-Financial statements are pulled from **Yahoo Finance**, via the `yfinance`
-library — the same kind of free source (MSN Money / Yahoo! Finance) the
-book itself uses in its own examples. Every report prints the exact Yahoo
-Finance URLs the numbers came from, at the bottom.
+All figures come from `backend/rule1.db`, a local SQLite database that
+`backend/build_rule1_db.py` builds from a WRDS dump (Compustat fundamentals,
+CRSP daily prices, I/B/E/S long-term growth estimates) for the 12 supported
+tickers, with 10 fiscal years of history. Nothing is fetched at run time.
 
-**A free source's honest limitation:** Yahoo's free statement pages
-typically go back 4–6 fiscal years, not the full 10–15 the book prefers for
-judging consistency. The book itself acknowledges this ("Nobody does
-ten-year growth rates for free — yet") and says to use whatever span you
-have (5-year and 1-year, at minimum) rather than skip the analysis. This
-tool does the same: it reports the longest window the data actually
-supports, and labels it accordingly.
+"Current price" is the last close recorded in `rule1.db`, not a live quote;
+the dashboard's warning banner shows that date for each ticker. The
+docstring at the top of `backend/rule1/db_data.py` documents which database
+column feeds each number.
 
-**A note on API drift:** Yahoo occasionally renames statement line items,
-and `yfinance` follows along, which can make a field briefly stop matching.
-`rule1/data.py` matches several likely label spellings for each line item
-and degrades to "not available" rather than crashing — but if a whole
-statement comes back empty after a Yahoo change, that's the first place to
-look.
+`rule1.db` is not committed to git (see `.gitignore`), so a fresh clone
+needs it built or copied into `backend/` before the app can show anything.
 
 ## Setup
 
@@ -84,11 +78,10 @@ python app.py
 ```
 
 Then open **http://127.0.0.1:5000** in your browser. Type a ticker into the
-search bar (or click one of the quick-pick chips) and it fetches, computes,
+search bar (or click one of the 12 ticker chips) and it computes
 and displays everything: the Big Five stat tiles (click any one to chart
 that metric's raw values by year, bar-chart style), a **Leadership** card
-(the company's named officers — the "Management" M — each name linking out
-to Wikipedia so you can read up on them), the growth trends chart
+(the "Management" M — empty for now, since `rule1.db` has no officer data), the growth trends chart
 (sales/EPS/equity/free cash flow indexed to their first year so very
 different units compare cleanly on one log-scale axis), the debt-payback
 gauge, the full Sticker Price walk-through as a table, and — last — the
@@ -98,13 +91,6 @@ This is a plain local Flask app — `python app.py` starts a server only your
 own browser can reach, and closing the terminal (or hitting Ctrl+C) stops
 it. Nothing is deployed, hosted, or made reachable from outside your
 machine.
-
-If Yahoo Finance can't be reached for a ticker (no internet, or a rate
-limit), the app falls back to a small built-in cache of eight tickers
-(AAPL, MSFT, COST, JNJ, PG, NKE, CAT, XOM) so the layout still has
-something to show, and says clearly that the figures are cached rather than
-live. Leadership names come from Yahoo's live company-profile data only, so
-that card shows a plain note instead in cached/offline mode.
 
 ## Usage — the command line (optional)
 
@@ -120,19 +106,13 @@ python analyze.py AAPL
 Analyze and compare several:
 
 ```bash
-python analyze.py AAPL MSFT COST
-```
-
-You can also pass a company name instead of a ticker (best-effort lookup):
-
-```bash
-python analyze.py "Garmin"
+python analyze.py AAPL MSFT KO
 ```
 
 Useful flags:
 
 ```bash
-python analyze.py AAPL --years 15          # ask for more history (capped by what Yahoo has)
+python analyze.py AAPL --years 5           # read fewer years of history (default 10)
 python analyze.py AAPL --out-dir my_charts # where to save PNGs (default: rule1_output/)
 python analyze.py AAPL --no-charts         # terminal report only, skip the PNGs
 ```
@@ -156,39 +136,41 @@ python analyze.py AAPL --no-charts         # terminal report only, skip the PNGs
 ## Project layout
 
 ```
-rule1_calculator/
-├── app.py                 # `python app.py` — the local dashboard (Flask)
-├── analyze.py             # `python analyze.py TICKER [TICKER...]` — CLI
 ├── requirements.txt
-├── dashboard_data.json    # offline fallback cache (8 tickers) if live fetch fails
-├── templates/
-│   └── index.html         # dashboard page (search bar + results panel)
-├── static/
-│   ├── app.css
-│   └── app.js
-├── assets/                # the five moat/castle graphics
-│   └── level1.png ... level5.png
-├── rule1/
-│   ├── data.py            # scrapes/fetches statements via yfinance
-│   ├── metrics.py         # pure-math: CAGR, ROIC, debt ratio, sticker price
-│   ├── analysis.py        # wires data.py + metrics.py into one result
-│   ├── report.py          # colored terminal output + matplotlib charts (also
-│   │                       #   used by app.py to serve chart PNGs)
-│   └── cli.py              # argument parsing / entry point for analyze.py
-└── tests/
-    ├── test_metrics.py       # math checked against the book's own numbers
-    └── test_report_smoke.py  # full pipeline, run offline on book fixture data
+├── Procfile
+├── backend/
+│   ├── app.py                 # `python app.py` — the local dashboard (Flask)
+│   ├── analyze.py             # `python analyze.py TICKER [TICKER...]` — CLI
+│   ├── build_rule1_db.py      # builds rule1.db from the WRDS dump
+│   ├── rule1.db               # local database (not in git)
+│   ├── rule1/
+│   │   ├── data.py            # the CompanyData container
+│   │   ├── db_data.py         # loads CompanyData from rule1.db; SUPPORTED_TICKERS
+│   │   ├── metrics.py         # pure-math: CAGR, ROIC, debt ratio, sticker price
+│   │   ├── analysis.py        # wires db_data.py + metrics.py into one result
+│   │   ├── backtest.py        # reads the backtest tables from rule1.db
+│   │   ├── report.py          # colored terminal output + matplotlib charts (also
+│   │   │                       #   used by app.py to serve chart PNGs)
+│   │   └── cli.py             # argument parsing / entry point for analyze.py
+│   ├── scripts/
+│   └── tests/
+└── frontend/
+    ├── templates/index.html   # dashboard page (ticker picker + results panel)
+    ├── static/                # app.css, app.js
+    └── assets/                # the five moat/castle graphics
 ```
 
 ## Running the tests
 
 No network needed — the tests use numbers straight from the book (Apollo
 Group, Harley-Davidson, H&R Block) as fixtures, so you can verify the math
-is right before you ever hit a live API:
+is right without the real database (run from `backend/`):
 
 ```bash
 python tests/test_metrics.py
 python tests/test_report_smoke.py
+python tests/test_db_data.py
+python tests/test_backtest.py
 ```
 
 or, if you have pytest installed:
@@ -199,15 +181,11 @@ pytest tests/ -v
 
 ## Extending it
 
-- **More years of history**: swap `rule1/data.py`'s Yahoo Finance calls for
-  a paid data provider (or scrape a site like stockanalysis.com directly)
-  if you want the full 10–15 years the book prefers.
+- **More tickers or more history**: add them to the WRDS dump, rebuild with
+  `build_rule1_db.py`, and add the ticker to `SUPPORTED_TICKERS` in
+  `rule1/db_data.py`.
 - **Excel/CSV export**: `analysis.py`'s `AnalysisResult` has everything
   already computed — add a `csv.writer` call in `report.py` to dump it.
 - **Screening many tickers at once**: loop over a watchlist and call
   `rule1.analysis.analyze()` for each; the terminal comparison table
   already handles an arbitrary number of results.
-- **Refreshing the offline fallback cache**: `dashboard_data.json` (used by
-  `app.py` only when a live fetch fails) was built by running
-  `compute_dashboard_data.py` over `raw_scraped_data.json`. Edit the raw
-  file and re-run the script to add tickers or update the cached figures.
