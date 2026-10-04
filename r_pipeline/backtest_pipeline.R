@@ -767,7 +767,8 @@ build_buy_windows <- function(signals) {
 # Backtest orchestration
 # ---------------------------------------------------------
 
-HORIZON_YEARS <- 10
+# Holding periods measured for every buy window, in years
+HORIZONS <- c(1, 3, 5, 10)
 
 # Fiscal years of history behind each Big Five calculation
 # (11 rows = a 10-year growth window, same as rule1/db_data.py)
@@ -937,56 +938,65 @@ benchmark_return_between <- function(start_date, end_date) {
   mean(returns, na.rm = TRUE)
 }
 
+# One row per horizon in HORIZONS for a buy window, each measured over
+# its own holding period
 outcome_row <- function(ticker_value, ticker_prices, signal_date, signal) {
   last_date <- max(ticker_prices$date)
-  full_target <- signal_date %m+% years(HORIZON_YEARS)
-  
-  holding <- ticker_prices %>%
-    filter(date >= signal_date, date <= min(full_target, last_date))
-  
-  # Nothing to measure for a signal on the last day of price data
-  if (nrow(holding) < 2) {
-    return(NULL)
-  }
-  
-  target_date <- max(holding$date)
-  
-  # Signals too recent for a full horizon are measured to the end of the
-  # data and labelled with the whole years actually covered
-  years_held <- if (full_target <= last_date) {
-    HORIZON_YEARS
-  } else {
-    time_length(interval(signal_date, target_date), "years")
-  }
-  
-  price_at_signal <- holding$close[1]
-  realized_price <- holding$close[nrow(holding)]
-  realized_return <- realized_price / price_at_signal - 1
-  daily_returns <- diff(holding$close) / head(holding$close, -1)
   
   # The growth rate the Sticker Price was built on (after the 0-60% clamp)
   growth_rate <- unname(signal$growth_rate)
   sticker_price <- unname(signal$sticker_price)
-  moat_at_target <- moat_as_of(ticker_value, target_date)
-  benchmark_return <- benchmark_return_between(signal_date, target_date)
   
-  data.frame(
-    ticker = ticker_value,
-    signal_date = format(signal_date),
-    horizon_years = as.integer(floor(years_held)),
-    target_date = format(target_date),
-    realized_price = realized_price,
-    realized_return = realized_return,
-    projected_return = (1 + growth_rate)^years_held - 1,
-    moat_held_up = as.integer(moat_at_target >= signal$moat_level),
-    price_target_hit = as.integer(max(holding$close[-1]) >= sticker_price),
-    is_profitable = as.integer(realized_return > 0),
-    max_drawdown = min(holding$close / cummax(holding$close) - 1),
-    volatility = sd(daily_returns) * sqrt(252),
-    benchmark_return = benchmark_return,
-    benchmark_delta = realized_return - benchmark_return,
-    stringsAsFactors = FALSE
-  )
+  rows <- list()
+  
+  for (horizon in HORIZONS) {
+    full_target <- signal_date %m+% years(horizon)
+    
+    # A horizon is only written when the whole hold fits inside the price
+    # data. A signal too recent for it gets no row for that horizon, so
+    # horizon_years is always the real holding period and can never collide
+    # on (ticker, signal_date, horizon_years) with a shorter horizon's row.
+    if (full_target > last_date) {
+      next
+    }
+    
+    holding <- ticker_prices %>%
+      filter(date >= signal_date, date <= full_target)
+    
+    if (nrow(holding) < 2) {
+      next
+    }
+    
+    target_date <- max(holding$date)
+    
+    price_at_signal <- holding$close[1]
+    realized_price <- holding$close[nrow(holding)]
+    realized_return <- realized_price / price_at_signal - 1
+    daily_returns <- diff(holding$close) / head(holding$close, -1)
+    
+    moat_at_target <- moat_as_of(ticker_value, target_date)
+    benchmark_return <- benchmark_return_between(signal_date, target_date)
+    
+    rows[[length(rows) + 1]] <- data.frame(
+      ticker = ticker_value,
+      signal_date = format(signal_date),
+      horizon_years = as.integer(horizon),
+      target_date = format(target_date),
+      realized_price = realized_price,
+      realized_return = realized_return,
+      projected_return = (1 + growth_rate)^horizon - 1,
+      moat_held_up = as.integer(moat_at_target >= signal$moat_level),
+      price_target_hit = as.integer(max(holding$close[-1]) >= sticker_price),
+      is_profitable = as.integer(realized_return > 0),
+      max_drawdown = min(holding$close / cummax(holding$close) - 1),
+      volatility = sd(daily_returns) * sqrt(252),
+      benchmark_return = benchmark_return,
+      benchmark_delta = realized_return - benchmark_return,
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  bind_rows(rows)
 }
 
 run_ticker_backtest <- function(ticker_value) {

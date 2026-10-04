@@ -27,6 +27,7 @@ HIT_RATE_COLUMNS = {
     "is_profitable": "Win rate (profitable)",
 }
 PERFORMANCE_COLUMNS = ("max_drawdown", "volatility", "benchmark_return", "benchmark_delta")
+STICKER_HORIZON_YEARS = 10
 
 _R_EPOCH = date(1970, 1, 1)
 
@@ -246,8 +247,12 @@ def load_backtest(ticker: str, db_path: Path = DEFAULT_DB_PATH, today: Optional[
             },
         }
 
-    # Default to the horizon with the most completed outcomes (ties -> longer).
-    default_horizon = max(horizons, key=lambda h: (by_horizon[str(h)]["n_rows"], h)) if horizons else None
+    # Default to the 10-year horizon the Sticker Price is built around; without
+    # one, the horizon with the most completed outcomes (ties -> longer).
+    if STICKER_HORIZON_YEARS in horizons:
+        default_horizon = STICKER_HORIZON_YEARS
+    else:
+        default_horizon = max(horizons, key=lambda h: (by_horizon[str(h)]["n_rows"], h)) if horizons else None
 
     return {
         "ticker": ticker,
