@@ -101,6 +101,7 @@ def analyze_company(company: CompanyData) -> AnalysisResult:
         historical_avg_pe=historical_avg_pe or company.current_pe,
         current_price=company.current_price,
         fallback_eps_growth=eps.longest_value,
+        ticker=company.ticker,
     )
 
     data_years = len(set(company.sales_by_year) | set(company.eps_by_year) |

@@ -40,7 +40,7 @@ sys.modules["yfinance"] = _NoLiveData("yfinance")
 
 from rule1.analysis import analyze_company  # noqa: E402
 from rule1.db_data import fetch_company_data_from_db  # noqa: E402
-from rule1.metrics import MARR, PROJECTION_YEARS  # noqa: E402
+from rule1.metrics import BUYBACK_DISTORTED_TICKERS, MARR, PROJECTION_YEARS  # noqa: E402
 
 DEFAULT_DB = ROOT / "rule1.db"
 FALLBACK_TAX_RATE = 0.21  # compute_roic's fallback; rule1.db has no pretax income
@@ -97,7 +97,12 @@ def independent(conn: sqlite3.Connection, ticker: str) -> dict:
     pes = [sum(closes[y]) / len(closes[y]) / e for y, e in series["eps"].items() if e > 0 and y in closes]
     hist_pe = sum(pes) / len(pes)
 
-    g = min(max(min(growth["equity"][10] or 0.0, meanest / 100), 0.0), 0.60)  # same 0-60% clamp as the app
+    # buyback-distorted tickers use the analyst estimate alone; the rest take the lower of the two
+    if ticker in BUYBACK_DISTORTED_TICKERS:
+        raw_g = meanest / 100
+    else:
+        raw_g = min(growth["equity"][10] or 0.0, meanest / 100)
+    g = min(max(raw_g, 0.0), 0.60)  # same 0-60% clamp as the app
     rule1_pe = max(min(g * 200, hist_pe), 5.0)
     sticker = (eps_ttm * (1 + g) ** PROJECTION_YEARS * rule1_pe / (1 + MARR) ** PROJECTION_YEARS
                if eps_ttm > 0 else None)
