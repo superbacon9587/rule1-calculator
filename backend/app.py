@@ -71,6 +71,7 @@ def _result_to_json(result) -> dict:
         "industry": company.industry,
         "currency": company.currency,
         "current_price": company.current_price,
+        "current_price_date": company.current_price_date,
         "current_eps": company.current_eps,
         "current_pe": company.current_pe,
         "data_years_available": result.data_years_available,

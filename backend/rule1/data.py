@@ -23,6 +23,7 @@ class CompanyData:
     industry: Optional[str] = None
     currency: Optional[str] = None
     current_price: Optional[float] = None
+    current_price_date: Optional[str] = None  # ISO date of that price (last close in the data)
     current_eps: Optional[float] = None
     current_pe: Optional[float] = None
 

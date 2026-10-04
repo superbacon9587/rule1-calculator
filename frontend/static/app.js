@@ -17,6 +17,7 @@
     ticker: document.getElementById("company-ticker"),
     sector: document.getElementById("company-sector"),
     price: document.getElementById("current-price"),
+    priceLabel: document.getElementById("price-label"),
     sticker: document.getElementById("sticker-price"),
     mos: document.getElementById("mos-price"),
     verdict: document.getElementById("verdict-pill"),
@@ -484,6 +485,13 @@
     if (els.ticker) els.ticker.textContent = data.ticker;
     if (els.sector) els.sector.textContent = [data.sector, data.industry].filter(Boolean).join(" — ");
     if (els.price) els.price.textContent = fmtMoney(data.current_price);
+    if (els.priceLabel) {
+      // "YYYY-MM-DD" -> "MM/DD/YYYY" by splitting the string, so no timezone shift
+      const parts = (data.current_price_date || "").split("-");
+      els.priceLabel.textContent = parts.length === 3
+        ? `Price on ${parts[1]}/${parts[2]}/${parts[0]}`
+        : "Current price";
+    }
     if (els.sticker && data.sticker) els.sticker.textContent = fmtMoney(data.sticker.sticker_price);
     if (els.mos && data.sticker) els.mos.textContent = fmtMoney(data.sticker.mos_price);
 
