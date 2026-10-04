@@ -76,9 +76,9 @@ prices_daily <- prices_daily %>%
 cat("Price data prepared.\n")
 cat("Tickers:", n_distinct(prices_daily$ticker), "\n")
 cat("Date range:",
-    min(prices_daily$date, na.rm = TRUE),
+    format(min(prices_daily$date, na.rm = TRUE)),
     "to",
-    max(prices_daily$date, na.rm = TRUE),
+    format(max(prices_daily$date, na.rm = TRUE)),
     "\n")
 
     # ---------------------------------------------------------
@@ -315,6 +315,28 @@ pick_rule1_growth_rate <- function(
   )
 }
 
+# Hysteresis state machine for the Stochastic buy/sell regime (Ch. 12):
+# starts out of regime, flips to "buy" on an upward cross through 20,
+# stays "buy" until a downward cross through 80 flips it to "sell", and
+# so on. Mirrors the book's own Starbucks example, where the three
+# Tools cross on different days and the trade enters once all three are
+# simultaneously in their buy regime, not on one shared crossing day.
+compute_stoch_regime <- function(stoch_slow) {
+  n <- length(stoch_slow)
+  regime <- logical(n)
+  current <- FALSE
+
+  for (i in seq_len(n)) {
+    if (i > 1 && !is.na(stoch_slow[i]) && !is.na(stoch_slow[i - 1])) {
+      if (stoch_slow[i] > 20 && stoch_slow[i - 1] <= 20) current <- TRUE
+      if (stoch_slow[i] < 80 && stoch_slow[i - 1] >= 80) current <- FALSE
+    }
+    regime[i] <- current
+  }
+
+  regime
+}
+
 # Calculate technical buy signals
 calculate_technical_signals <- function(prices) {
   
@@ -335,24 +357,39 @@ calculate_technical_signals <- function(prices) {
   prices$macd <- macd_result[, "macd"]
   prices$macd_signal <- macd_result[, "signal"]
   
-  # Buy when MACD crosses above its signal line
-  prices$macd_buy <- prices$macd > prices$macd_signal &
-    dplyr::lag(prices$macd) <= dplyr::lag(prices$macd_signal)
+  # Buy regime: MACD is currently above its signal line. This persists
+  # for as long as the condition holds, not just the single day it
+  # crosses up, since Town's rule is "all three Tools agree buy as of
+  # that day," a state, not a same-day crossing event (Ch. 12).
+  prices$macd_buy <- prices$macd > prices$macd_signal
   
   # Stochastics: 14-day %K with 5-day slow average
+  # TTR::stoch stops with "non-leading NAs" when high/low are missing
+  # mid-series, so those days borrow the close here. They still count as
+  # 2-of-3 days below because high_low_available reads the original columns.
+  stoch_input <- data.frame(
+    high = dplyr::coalesce(prices$high, prices$close),
+    low = dplyr::coalesce(prices$low, prices$close),
+    close = prices$close
+  )
+  
   stoch_result <- TTR::stoch(
-    prices[, c("high", "low", "close")],
+    stoch_input,
     nFastK = 14,
     nFastD = 5,
     nSlowD = 5
   )
   
-  prices$stoch_k <- stoch_result[, "fastK"]
-  prices$stoch_slow <- stoch_result[, "slowD"]
+  # TTR returns stochastics on a 0-1 scale; the rule below uses 0-100
+  prices$stoch_k <- stoch_result[, "fastK"] * 100
+  prices$stoch_slow <- stoch_result[, "slowD"] * 100
   
-  # Buy when stochastic crosses upward through 20
-  prices$stoch_buy <- prices$stoch_slow > 20 &
-    dplyr::lag(prices$stoch_slow) <= 20
+  # Buy regime: enters on an upward cross through 20 (coming out of
+  # oversold) and persists until a downward cross through 80 (coming out
+  # of overbought) flips it to a sell regime, per Town's own rule (Ch.
+  # 12). This needs a running state, not a single-day comparison, since
+  # the two thresholds are different (20 to enter, 80 to exit).
+  prices$stoch_buy <- compute_stoch_regime(prices$stoch_slow)
   
   # 10-day moving average
   prices$moving_average <- zoo::rollmean(
@@ -362,9 +399,9 @@ calculate_technical_signals <- function(prices) {
     align = "right"
   )
   
-  # Buy when price crosses above moving average
-  prices$ma_buy <- prices$close > prices$moving_average &
-    dplyr::lag(prices$close) <= dplyr::lag(prices$moving_average)
+  # Buy regime: price is currently above its moving average, persisting
+  # until it crosses back below (same state-vs-event reasoning as MACD).
+  prices$ma_buy <- prices$close > prices$moving_average
   
   # Determine which tools can be used
   prices <- prices %>%
@@ -654,7 +691,11 @@ CREATE TABLE IF NOT EXISTS backtest_signals (
     is_buy_window     INTEGER,
     PRIMARY KEY (ticker, as_of_date)
 );
+")
 
+# RSQLite runs only the first statement of a multi-statement string,
+# so each table gets its own dbExecute()
+dbExecute(con, "
 CREATE TABLE IF NOT EXISTS backtest_outcomes (
     ticker            TEXT    NOT NULL,
     signal_date       TEXT    NOT NULL,
@@ -696,3 +737,370 @@ build_buy_windows <- function(signals) {
 
   signals
 }
+
+# ---------------------------------------------------------
+# Backtest orchestration
+# ---------------------------------------------------------
+
+HORIZON_YEARS <- 10
+
+# Fiscal years of history behind each Big Five calculation
+# (11 rows = a 10-year growth window, same as rule1/db_data.py)
+HISTORY_YEARS <- 10
+
+# Everything per-share is put on today's share basis so prices and EPS
+# from either side of a stock split can be compared. This only rescales
+# units; it uses no information from after the as-of date.
+#   prices: adj_close (= close / cfacpr), high / cfacpr, low / cfacpr
+#   annual EPS: eps_diluted / ajex
+#   TTM EPS: eps_ttm / cfacpr at the fiscal quarter end (no ajexq in the db)
+adjusted_prices <- prices_daily %>%
+  transmute(
+    ticker,
+    date,
+    close = as.numeric(adj_close),
+    high = high / as.numeric(cfacpr),
+    low = low / as.numeric(cfacpr),
+    cfacpr = as.numeric(cfacpr)
+  )
+
+annual_prepared <- fundamentals_annual %>%
+  mutate(eps_diluted = as.numeric(eps_diluted) / as.numeric(ajex)) %>%
+  prepare_annual_fundamentals()
+
+# Latest row on or before each date, in a frame sorted by date
+rows_on_or_before <- function(sorted_dates, dates) {
+  findInterval(as.numeric(as.Date(dates)), as.numeric(sorted_dates))
+}
+
+# eps_ttm is on the share basis of its fiscal quarter end, which is not a
+# column in the db. Annual known_from is the fiscal year end plus 4 months
+# for every row, so the quarter end is counted back from that.
+prepare_ticker_quarterly <- function(ticker_value, ticker_prices) {
+  quarterly <- fundamentals_quarterly %>%
+    filter(ticker == ticker_value)
+  
+  latest_annual <- fundamentals_annual %>%
+    filter(ticker == ticker_value) %>%
+    slice_max(fyear, n = 1, with_ties = FALSE)
+  
+  annual_known_from <- as.Date(latest_annual$known_from) %m+%
+    years(quarterly$fyearq - latest_annual$fyear)
+  
+  quarter_end <- annual_known_from %m-% months(4 + 3 * (4 - quarterly$fqtr))
+  quarter_end <- ceiling_date(quarter_end, "month") - days(1)
+  
+  index <- pmax(rows_on_or_before(ticker_prices$date, quarter_end), 1)
+  
+  quarterly %>%
+    mutate(eps_ttm = as.numeric(eps_ttm) / ticker_prices$cfacpr[index])
+}
+
+# Annual fundamentals known as of a date, latest HISTORY_YEARS + 1 fiscal years
+known_annual_data <- function(ticker_value, as_of_date) {
+  get_historical_fundamentals(annual_prepared, ticker_value, as_of_date) %>%
+    latest_known_by_year() %>%
+    slice_tail(n = HISTORY_YEARS + 1)
+}
+
+moat_as_of <- function(ticker_value, as_of_date) {
+  annual_data <- known_annual_data(ticker_value, as_of_date)
+  
+  if (nrow(annual_data) == 0) {
+    return(NA_integer_)
+  }
+  
+  as.integer(assess_moat(calculate_big_five(annual_data)$green_count))
+}
+
+# calculate_rule1_signal() on what was known as of a date.
+# NULL when there are no fundamentals yet or TTM EPS is not positive.
+rule1_signal_as_of <- function(ticker_value, ticker_prices, ticker_quarterly,
+                               as_of_date) {
+  annual_data <- known_annual_data(ticker_value, as_of_date)
+  
+  if (nrow(annual_data) == 0) {
+    return(NULL)
+  }
+  
+  # analyst_growth.medest is in percent (16.2 = 16.2%)
+  analyst_rate <- get_analyst_growth(analyst_growth, ticker_value, as_of_date) / 100
+  
+  calculate_rule1_signal(
+    annual_data = annual_data,
+    quarterly_data = ticker_quarterly,
+    prices = ticker_prices,
+    analyst_growth_rate = analyst_rate,
+    as_of_date = as_of_date
+  )
+}
+
+big_five_to_json <- function(big_five) {
+  as.character(toJSON(
+    list(
+      sales = unname(big_five$sales_growth["10"]),
+      eps = unname(big_five$eps_growth["10"]),
+      equity = unname(big_five$equity_growth["10"]),
+      fcf = unname(big_five$fcf_growth["10"]),
+      roic = big_five$roic,
+      green_count = big_five$green_count
+    ),
+    auto_unbox = TRUE,
+    na = "null",
+    digits = 6
+  ))
+}
+
+tools_status_to_json <- function(day) {
+  tool_state <- function(flag) if (isTRUE(flag)) "buy" else "no signal"
+  
+  as.character(toJSON(
+    list(
+      tools_status = day$tools_status,
+      macd = tool_state(day$macd_buy),
+      stochastic = if (day$high_low_available) {
+        tool_state(day$stoch_buy)
+      } else {
+        "unavailable (no high/low)"
+      },
+      ma = tool_state(day$ma_buy)
+    ),
+    auto_unbox = TRUE
+  ))
+}
+
+signal_row <- function(ticker_value, day, signal, is_buy_window) {
+  has_signal <- !is.null(signal)
+  
+  data.frame(
+    ticker = ticker_value,
+    as_of_date = format(day$date),
+    big_five_json = if (has_signal) big_five_to_json(signal$big_five) else NA_character_,
+    moat_level = if (has_signal) {
+      as.integer(signal$moat_level)
+    } else {
+      moat_as_of(ticker_value, day$date)
+    },
+    sticker_price = if (has_signal) unname(signal$sticker_price) else NA_real_,
+    mos_price = if (has_signal) unname(signal$mos_price) else NA_real_,
+    price_at_signal = day$price,
+    tools_status_json = tools_status_to_json(day),
+    is_buy_window = as.integer(is_buy_window),
+    stringsAsFactors = FALSE
+  )
+}
+
+# Buy-and-hold of every ticker trading on the signal date, equal weights,
+# over the same dates as the signal (no timing)
+benchmark_return_between <- function(start_date, end_date) {
+  returns <- sapply(split(adjusted_prices, adjusted_prices$ticker), function(p) {
+    start_index <- rows_on_or_before(p$date, start_date)
+    end_index <- rows_on_or_before(p$date, end_date)
+    
+    if (start_index == 0 || end_index <= start_index) {
+      return(NA_real_)
+    }
+    
+    p$close[end_index] / p$close[start_index] - 1
+  })
+  
+  if (all(is.na(returns))) {
+    return(NA_real_)
+  }
+  
+  mean(returns, na.rm = TRUE)
+}
+
+outcome_row <- function(ticker_value, ticker_prices, signal_date, signal) {
+  last_date <- max(ticker_prices$date)
+  full_target <- signal_date %m+% years(HORIZON_YEARS)
+  
+  holding <- ticker_prices %>%
+    filter(date >= signal_date, date <= min(full_target, last_date))
+  
+  # Nothing to measure for a signal on the last day of price data
+  if (nrow(holding) < 2) {
+    return(NULL)
+  }
+  
+  target_date <- max(holding$date)
+  
+  # Signals too recent for a full horizon are measured to the end of the
+  # data and labelled with the whole years actually covered
+  years_held <- if (full_target <= last_date) {
+    HORIZON_YEARS
+  } else {
+    time_length(interval(signal_date, target_date), "years")
+  }
+  
+  price_at_signal <- holding$close[1]
+  realized_price <- holding$close[nrow(holding)]
+  realized_return <- realized_price / price_at_signal - 1
+  daily_returns <- diff(holding$close) / head(holding$close, -1)
+  
+  equity_growth <- unname(signal$big_five$equity_growth["10"])
+  sticker_price <- unname(signal$sticker_price)
+  moat_at_target <- moat_as_of(ticker_value, target_date)
+  benchmark_return <- benchmark_return_between(signal_date, target_date)
+  
+  data.frame(
+    ticker = ticker_value,
+    signal_date = format(signal_date),
+    horizon_years = as.integer(floor(years_held)),
+    target_date = format(target_date),
+    realized_price = realized_price,
+    realized_return = realized_return,
+    projected_return = (1 + equity_growth)^years_held - 1,
+    moat_held_up = as.integer(moat_at_target >= signal$moat_level),
+    price_target_hit = as.integer(max(holding$close[-1]) >= sticker_price),
+    is_profitable = as.integer(realized_return > 0),
+    max_drawdown = min(holding$close / cummax(holding$close) - 1),
+    volatility = sd(daily_returns) * sqrt(252),
+    benchmark_return = benchmark_return,
+    benchmark_delta = realized_return - benchmark_return,
+    stringsAsFactors = FALSE
+  )
+}
+
+run_ticker_backtest <- function(ticker_value) {
+  ticker_prices <- adjusted_prices %>%
+    filter(ticker == ticker_value, !is.na(close)) %>%
+    arrange(date)
+  
+  ticker_quarterly <- prepare_ticker_quarterly(ticker_value, ticker_prices)
+  
+  daily <- calculate_technical_signals(ticker_prices) %>%
+    mutate(price = close, mos_price = NA_real_)
+  
+  # A day can only be a buy day when technical_buy is TRUE, so the
+  # Margin-of-Safety price is only worked out for those days
+  snapshots <- list()
+  
+  for (i in which(daily$technical_buy %in% TRUE)) {
+    signal <- rule1_signal_as_of(
+      ticker_value, ticker_prices, ticker_quarterly, daily$date[i]
+    )
+    
+    if (!is.null(signal)) {
+      snapshots[[format(daily$date[i])]] <- signal
+      daily$mos_price[i] <- unname(signal$mos_price)
+    }
+  }
+  
+  daily <- build_buy_windows(daily)
+  
+  # A window opens on the first day of a run of buy days and closes on
+  # the first day after it that is not a buy day
+  in_window <- daily$is_buy_window == 1
+  was_in_window <- dplyr::lag(in_window, default = FALSE)
+  open_rows <- which(in_window & !was_in_window)
+  close_rows <- which(!in_window & was_in_window)
+  
+  signal_rows <- list()
+  outcome_rows <- list()
+  
+  for (i in open_rows) {
+    signal <- snapshots[[format(daily$date[i])]]
+    
+    signal_rows[[length(signal_rows) + 1]] <- signal_row(
+      ticker_value, daily[i, ], signal, TRUE
+    )
+    outcome_rows[[length(outcome_rows) + 1]] <- outcome_row(
+      ticker_value, ticker_prices, daily$date[i], signal
+    )
+  }
+  
+  # One is_buy_window = 0 row on each closing day. rule1/backtest.py
+  # counts a new window only after a row that is not flagged, so without
+  # these every window of a ticker would read as a single window.
+  for (i in close_rows) {
+    signal <- rule1_signal_as_of(
+      ticker_value, ticker_prices, ticker_quarterly, daily$date[i]
+    )
+    
+    signal_rows[[length(signal_rows) + 1]] <- signal_row(
+      ticker_value, daily[i, ], signal, FALSE
+    )
+  }
+  
+  list(
+    signals = bind_rows(signal_rows),
+    outcomes = bind_rows(outcome_rows),
+    windows = length(open_rows),
+    technical_buy_days = sum(daily$technical_buy, na.rm = TRUE),
+    two_of_three_windows = sum(!daily$high_low_available[open_rows])
+  )
+}
+
+# Replace a ticker's rows in one transaction so a rerun never leaves
+# half-written or duplicate rows
+write_ticker_backtest <- function(ticker_value, result) {
+  dbWithTransaction(con, {
+    dbExecute(con, "DELETE FROM backtest_signals WHERE ticker = ?",
+              params = list(ticker_value))
+    dbExecute(con, "DELETE FROM backtest_outcomes WHERE ticker = ?",
+              params = list(ticker_value))
+    
+    if (nrow(result$signals) > 0) {
+      dbWriteTable(con, "backtest_signals", result$signals, append = TRUE)
+    }
+    
+    if (nrow(result$outcomes) > 0) {
+      dbWriteTable(con, "backtest_outcomes", result$outcomes, append = TRUE)
+    }
+  })
+}
+
+tickers <- sort(unique(prices_daily$ticker))
+run_summary <- list()
+
+for (ticker_value in tickers) {
+  cat("Backtesting", ticker_value, "...\n")
+  
+  # An error in one ticker is recorded and reported, not fatal to the run
+  run_summary[[ticker_value]] <- tryCatch({
+    result <- run_ticker_backtest(ticker_value)
+    write_ticker_backtest(ticker_value, result)
+    
+    data.frame(
+      ticker = ticker_value,
+      status = "ok",
+      technical_buy_days = result$technical_buy_days,
+      buy_windows = result$windows,
+      two_of_three_windows = result$two_of_three_windows,
+      outcome_rows = nrow(result$outcomes),
+      error = NA_character_,
+      stringsAsFactors = FALSE
+    )
+  }, error = function(e) {
+    data.frame(
+      ticker = ticker_value,
+      status = "ERROR",
+      technical_buy_days = NA_integer_,
+      buy_windows = NA_integer_,
+      two_of_three_windows = NA_integer_,
+      outcome_rows = NA_integer_,
+      error = conditionMessage(e),
+      stringsAsFactors = FALSE
+    )
+  })
+}
+
+run_summary <- bind_rows(run_summary)
+
+cat("\nBacktest summary:\n")
+print(run_summary, row.names = FALSE)
+
+failed_tickers <- run_summary$ticker[run_summary$status == "ERROR"]
+
+if (length(failed_tickers) > 0) {
+  cat(
+    "\nWARNING: these tickers failed and wrote no rows:",
+    paste(failed_tickers, collapse = ", "),
+    "\n"
+  )
+} else {
+  cat("\nAll", nrow(run_summary), "tickers completed without errors.\n")
+}
+
+dbDisconnect(con)

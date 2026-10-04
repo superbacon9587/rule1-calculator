@@ -348,8 +348,11 @@
         const signed = col === "benchmark_return" || col === "benchmark_delta";
         const tone = col === "benchmark_delta" && v != null ? (v >= 0 ? "is-green" : "is-red") : "";
         const sub = col === "benchmark_delta"
-          ? `realized ${fmtSignedPct(latest.realized_return)} minus benchmark`
-          : col === "max_drawdown" ? "peak to trough while held" : col === "volatility" ? "while held" : "same holding period";
+          ? `realized ${fmtSignedPct(latest.realized_return)} minus benchmark (equal-weighted avg. of the rule1.db tickers trading at the time, not the S&P 500 or the broader market)`
+          : col === "max_drawdown" ? "peak to trough while held"
+          : col === "volatility" ? "while held"
+          : col === "benchmark_return" ? "equal-weighted avg. of the rule1.db tickers trading at the time, not the S&P 500 or the broader market"
+          : "same holding period";
         const source = `backtest_outcomes.${col} for ${ticker}, signal_date = ${latest.signal_date}, horizon_years = ${h}.`;
         return btTile(label, signed ? fmtSignedPct(v) : fmtPct(v), sub, source, tone);
       }).join("");
