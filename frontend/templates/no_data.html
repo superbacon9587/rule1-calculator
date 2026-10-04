@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rule #1 Calculator — data not available</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="24" height="24">
+          <path d="M4 26 L4 18 L11 18 L11 26 Z" fill="var(--accent)"/>
+          <path d="M13 26 L13 12 L20 12 L20 26 Z" fill="var(--accent)"/>
+          <path d="M22 26 L22 6 L29 6 L29 26 Z" fill="var(--accent-dim)"/>
+        </svg>
+      </span>
+      <span class="brand-name">Rule&nbsp;#1 Calculator</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Data not available</h2>
+    <p>{{ message }}</p>
+    <p>Please try again later. If you run this site, check that the deploy downloaded <code>rule1.db</code> (see "Deploying to Render" in the README).</p>
+  </section>
+</main>
+
+<footer>
+  <p>For education only — not investment advice.</p>
+</footer>
+
+</body>
+</html>

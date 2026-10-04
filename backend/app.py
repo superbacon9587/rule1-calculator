@@ -1,12 +1,14 @@
 """
-Local Rule #1 dashboard.
+Rule #1 dashboard.
 
-Run with `python app.py`, then open http://127.0.0.1:5000 in a browser.
-This is a local-only Flask app: nothing here is published or hosted
-anywhere. All data is read from the local rule1.db (see
-build_rule1_db.py), which covers a fixed set of tickers
-(rule1.db_data.SUPPORTED_TICKERS). Any other ticker gets a friendly error;
-the app never fetches company data over the network.
+Run locally with `python app.py`, then open http://127.0.0.1:5000 in a
+browser; when deployed it is served by gunicorn (see the Procfile and the
+README's "Deploying to Render" section). All data is read from rule1.db
+(built by build_rule1_db.py, or downloaded at deploy time by fetch_db.py),
+which covers a fixed set of tickers (rule1.db_data.SUPPORTED_TICKERS). Any
+other ticker gets a friendly error; the app never fetches company data over
+the network. If rule1.db is missing, every page and API route answers with a
+friendly "data not available" response instead of a stack trace.
 
 The heavy lifting (loading statements, computing the Big Five, the
 Sticker Price, the moat rating) is entirely the already-tested `rule1`
@@ -23,7 +25,7 @@ from flask import Flask, jsonify, render_template, request, send_file, abort
 
 from rule1.analysis import analyze
 from rule1.metrics import MARR, assess_moat, implied_annual_return
-from rule1.backtest import load_backtest
+from rule1.backtest import DEFAULT_DB_PATH, load_backtest
 from rule1.db_data import SUPPORTED_TICKERS, UnsupportedTickerError
 from rule1 import report as report_mod
 
@@ -41,6 +43,24 @@ app = Flask(
 # In-memory cache so re-typing a ticker (or switching between the growth
 # chart and debt gauge) doesn't reload/recompute every time.
 _cache: "dict[str, object]" = {}
+
+DB_MISSING_MESSAGE = (
+    "Data not available: the rule1.db database is missing on this server, "
+    "so no company data can be shown right now."
+)
+
+
+@app.before_request
+def _require_db():
+    """Without rule1.db nothing can be computed. Answer with a friendly page
+    (or JSON for the API routes) rather than letting a route hit sqlite."""
+    if request.endpoint == "static" or DEFAULT_DB_PATH.exists():
+        return None
+    if request.path.startswith("/api/"):
+        # "available"/"reason" is the shape the backtest panel already reads.
+        return jsonify({"error": DB_MISSING_MESSAGE, "available": False, "reason": DB_MISSING_MESSAGE}), 503
+    return render_template("no_data.html", message=DB_MISSING_MESSAGE), 503
+
 
 def _result_to_json(result) -> dict:
     company = result.company
