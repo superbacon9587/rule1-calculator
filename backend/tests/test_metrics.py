@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from rule1.metrics import (
     cagr, growth_rate_windows, average_windows, compute_roic, debt_payback_years,
     compute_sticker_price, pick_rule1_growth_rate, is_green, debt_color,
-    assess_moat, implied_annual_return, MARR,
+    assess_moat, implied_annual_return, MARR, BUYBACK_DISTORTED_TICKERS,
 )
 
 
@@ -149,6 +149,51 @@ def test_pick_rule1_growth_rate_takes_the_lower_number():
     rate, source = pick_rule1_growth_rate(historical_equity_growth=0.30, analyst_growth_estimate=0.18)
     assert approx(rate, 0.18, 1e-9)
     assert "lower of" in source
+
+
+def test_buyback_distorted_ticker_uses_analyst_estimate():
+    # AAPL: buybacks shrink book value, so equity growth is ~0 or negative
+    # and the lower-of rule would floor growth at 0%. The analyst estimate
+    # is used instead, and the source says why.
+    assert "AAPL" in BUYBACK_DISTORTED_TICKERS
+    rate, source = pick_rule1_growth_rate(
+        historical_equity_growth=-0.0069, analyst_growth_estimate=0.1175, ticker="AAPL")
+    assert approx(rate, 0.1175, 1e-9)
+    assert source == "analyst 5-year estimate (equity growth distorted by buybacks)"
+
+    result = compute_sticker_price(
+        current_eps=8.73, historical_equity_growth=-0.0069, analyst_growth_estimate=0.1175,
+        historical_avg_pe=22.77, ticker="AAPL")
+    assert approx(result.growth_rate, 0.1175, 1e-9)
+    assert result.growth_rate_source == source
+    assert approx(result.rule1_pe, 22.77, 1e-9)  # default PE 23.5, historical is lower
+
+
+def test_other_tickers_keep_the_lower_of_rule():
+    # MSFT is not on the list: lower of 20.5% equity growth and 15.7% analyst.
+    assert "MSFT" not in BUYBACK_DISTORTED_TICKERS
+    rate, source = pick_rule1_growth_rate(
+        historical_equity_growth=0.2051, analyst_growth_estimate=0.1569, ticker="MSFT")
+    assert approx(rate, 0.1569, 1e-9)
+    assert "lower of" in source
+
+    # ...and it still picks equity growth when that is the lower number.
+    rate, source = pick_rule1_growth_rate(
+        historical_equity_growth=0.05, analyst_growth_estimate=0.1569, ticker="MSFT")
+    assert approx(rate, 0.05, 1e-9)
+    assert "lower of" in source and "historical equity growth" in source
+
+
+def test_buyback_distorted_ticker_keeps_cap_and_pe_floor():
+    # The 60% cap and the PE floor of 5 are untouched by the override.
+    capped = compute_sticker_price(
+        current_eps=1.0, historical_equity_growth=0.0, analyst_growth_estimate=0.90,
+        historical_avg_pe=30, ticker="AAPL")
+    assert approx(capped.growth_rate, 0.60, 1e-9)
+    floored = compute_sticker_price(
+        current_eps=1.0, historical_equity_growth=0.0, analyst_growth_estimate=0.01,
+        historical_avg_pe=30, ticker="AAPL")
+    assert approx(floored.rule1_pe, 5.0, 1e-9)
 
 
 def test_is_green_threshold():

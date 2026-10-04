@@ -169,15 +169,31 @@ class StickerPriceResult:
     verdict: str = ""
 
 
+# Tickers whose book value per share is shrunk by heavy share buybacks, so
+# historical equity growth understates how fast the business is growing
+# (near zero or negative). For these the analyst estimate is used on its
+# own instead of the lower-of rule; every other ticker keeps the lower-of rule.
+BUYBACK_DISTORTED_TICKERS = frozenset({"AAPL", "KO", "WMT", "JNJ", "PG", "XOM", "CSCO"})
+BUYBACK_DISTORTED_SOURCE = "analyst 5-year estimate (equity growth distorted by buybacks)"
+
+
 def pick_rule1_growth_rate(historical_equity_growth: Optional[float],
                             analyst_growth_estimate: Optional[float],
-                            fallback_eps_growth: Optional[float] = None) -> "tuple[Optional[float], str]":
+                            fallback_eps_growth: Optional[float] = None,
+                            ticker: Optional[str] = None) -> "tuple[Optional[float], str]":
     """
     Chapter 9: "the single most important number for choosing a business's
     estimated future EPS growth rate is its past equity growth rate."  We
     cross-check it against the analysts' estimate and conservatively take
     the lower of the two (the book's rule of thumb).
+
+    Exception: for a ticker in BUYBACK_DISTORTED_TICKERS the analyst
+    estimate is used directly. Without one, the usual rule applies.
     """
+    if (ticker is not None and ticker.strip().upper() in BUYBACK_DISTORTED_TICKERS
+            and analyst_growth_estimate is not None):
+        return analyst_growth_estimate, BUYBACK_DISTORTED_SOURCE
+
     candidates = []
     if historical_equity_growth is not None:
         candidates.append(("historical equity growth", historical_equity_growth))
@@ -199,9 +215,10 @@ def compute_sticker_price(current_eps: Optional[float],
                            analyst_growth_estimate: Optional[float],
                            historical_avg_pe: Optional[float],
                            current_price: Optional[float] = None,
-                           fallback_eps_growth: Optional[float] = None) -> StickerPriceResult:
+                           fallback_eps_growth: Optional[float] = None,
+                           ticker: Optional[str] = None) -> StickerPriceResult:
     growth_rate, source = pick_rule1_growth_rate(
-        historical_equity_growth, analyst_growth_estimate, fallback_eps_growth)
+        historical_equity_growth, analyst_growth_estimate, fallback_eps_growth, ticker)
 
     # Growth rate has to be sane and positive to project a Sticker Price at all.
     if growth_rate is not None:

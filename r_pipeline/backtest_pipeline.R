@@ -264,13 +264,33 @@ assess_moat <- function(green_count) {
   }
 }
 
+# Tickers whose book value per share is shrunk by heavy share buybacks, so
+# historical equity growth understates how fast the business is growing
+# (near zero or negative). For these the analyst estimate is used on its
+# own instead of the lower-of rule; every other ticker keeps the lower-of
+# rule. Same list and source label as rule1/metrics.py.
+BUYBACK_DISTORTED_TICKERS <- c("AAPL", "KO", "WMT", "JNJ", "PG", "XOM", "CSCO")
+BUYBACK_DISTORTED_SOURCE <-
+  "analyst 5-year estimate (equity growth distorted by buybacks)"
+
 # Choose the Rule #1 growth rate
 pick_rule1_growth_rate <- function(
     historical_equity_growth,
     analyst_growth_estimate,
-    fallback_eps_growth = NA_real_
+    fallback_eps_growth = NA_real_,
+    ticker = NA_character_
 ) 
 {
+  
+  # Without an analyst estimate, the usual rule below applies
+  if (!is.na(ticker) &&
+      toupper(trimws(ticker)) %in% BUYBACK_DISTORTED_TICKERS &&
+      !is.na(analyst_growth_estimate)) {
+    return(list(
+      growth_rate = analyst_growth_estimate,
+      source = BUYBACK_DISTORTED_SOURCE
+    ))
+  }
   
   candidates <- c()
   labels <- c()
@@ -431,13 +451,15 @@ compute_sticker_price <- function(
     analyst_growth_estimate,
     historical_avg_pe,
     current_price = NA_real_,
-    fallback_eps_growth = NA_real_
+    fallback_eps_growth = NA_real_,
+    ticker = NA_character_
 ) {
   
   growth_result <- pick_rule1_growth_rate(
     historical_equity_growth,
     analyst_growth_estimate,
-    fallback_eps_growth
+    fallback_eps_growth,
+    ticker
   )
   
   growth_rate <- growth_result$growth_rate
@@ -597,16 +619,18 @@ prepare_annual_fundamentals <- function(data) {
     )
 }
 
+# Mean estimate (meanest), the same figure rule1/db_data.py reads
 get_analyst_growth <- function(data, ticker_value, as_of_date) {
   
   data %>%
     filter(
       ticker == ticker_value,
-      as.Date(known_from) <= as.Date(as_of_date)
+      as.Date(known_from) <= as.Date(as_of_date),
+      !is.na(meanest)
     ) %>%
     arrange(statpers, known_from) %>%
     slice_tail(n = 1) %>%
-    pull(medest) %>%
+    pull(meanest) %>%
     { if (length(.) == 0) NA_real_ else as.numeric(.) }
 }
 
@@ -635,15 +659,15 @@ get_current_eps <- function(data, ticker_value, as_of_date) {
 
 
 
-calculate_rule1_signal <- function(annual_data, quarterly_data, prices,
-                                   analyst_growth_rate, as_of_date) {
+calculate_rule1_signal <- function(ticker_value, annual_data, quarterly_data,
+                                   prices, analyst_growth_rate, as_of_date) {
   
   big_five <- calculate_big_five(annual_data)
   moat_level <- assess_moat(big_five$green_count)
   
   current_eps <- get_current_eps(
     quarterly_data,
-    ticker_value = unique(quarterly_data$ticker)[1],
+    ticker_value = ticker_value,
     as_of_date = as_of_date
   )
   
@@ -665,7 +689,8 @@ calculate_rule1_signal <- function(annual_data, quarterly_data, prices,
     historical_equity_growth = big_five$equity_growth["10"],
     analyst_growth_estimate = analyst_growth_rate,
     fallback_eps_growth = big_five$eps_growth["10"],
-    historical_avg_pe = historical_pe
+    historical_avg_pe = historical_pe,
+    ticker = ticker_value
   )
   
   list(
@@ -823,10 +848,11 @@ rule1_signal_as_of <- function(ticker_value, ticker_prices, ticker_quarterly,
     return(NULL)
   }
   
-  # analyst_growth.medest is in percent (16.2 = 16.2%)
+  # analyst_growth.meanest is in percent (16.2 = 16.2%)
   analyst_rate <- get_analyst_growth(analyst_growth, ticker_value, as_of_date) / 100
   
   calculate_rule1_signal(
+    ticker_value = ticker_value,
     annual_data = annual_data,
     quarterly_data = ticker_quarterly,
     prices = ticker_prices,
@@ -938,7 +964,8 @@ outcome_row <- function(ticker_value, ticker_prices, signal_date, signal) {
   realized_return <- realized_price / price_at_signal - 1
   daily_returns <- diff(holding$close) / head(holding$close, -1)
   
-  equity_growth <- unname(signal$big_five$equity_growth["10"])
+  # The growth rate the Sticker Price was built on (after the 0-60% clamp)
+  growth_rate <- unname(signal$growth_rate)
   sticker_price <- unname(signal$sticker_price)
   moat_at_target <- moat_as_of(ticker_value, target_date)
   benchmark_return <- benchmark_return_between(signal_date, target_date)
@@ -950,7 +977,7 @@ outcome_row <- function(ticker_value, ticker_prices, signal_date, signal) {
     target_date = format(target_date),
     realized_price = realized_price,
     realized_return = realized_return,
-    projected_return = (1 + equity_growth)^years_held - 1,
+    projected_return = (1 + growth_rate)^years_held - 1,
     moat_held_up = as.integer(moat_at_target >= signal$moat_level),
     price_target_hit = as.integer(max(holding$close[-1]) >= sticker_price),
     is_profitable = as.integer(realized_return > 0),
