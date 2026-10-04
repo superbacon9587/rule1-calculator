@@ -1,13 +1,14 @@
 """
-Builds the same CompanyData that data.py builds from yfinance, but from the
-local rule1.db tables (fundamentals_annual, fundamentals_quarterly,
-analyst_growth, prices_daily, companies) that build_rule1_db.py loads from a
-Town dump (Compustat / CRSP / I/B/E/S).
+Builds CompanyData from the local rule1.db tables (fundamentals_annual,
+fundamentals_quarterly, analyst_growth, prices_daily, companies) that
+build_rule1_db.py loads from a Town dump (Compustat / CRSP / I/B/E/S). This
+is the app's only data source; analysis.py runs the rule1.metrics math on it.
 
-Only the data source changes: every series here is built the same way
-data.py builds it, and analysis.py runs the same rule1.metrics math on it.
+The app used to read these series live from Yahoo Finance via yfinance. That
+path is gone, but the mapping and FLAGs below are kept because they explain
+where rule1.db's numbers differ from what Yahoo shows for the same company.
 
-Field mapping (yfinance line item -> rule1.db column):
+Field mapping (Yahoo / yfinance line item -> rule1.db column):
 
     Total Revenue                  -> fundamentals_annual.revt
     Diluted EPS (else Basic EPS)   -> fundamentals_annual.eps_diluted / ajex
@@ -29,11 +30,11 @@ Field mapping (yfinance line item -> rule1.db column):
     info.currency                  -> NO MATCH (assumed USD; all 12 are USD in the dump)
     info.sector / info.industry    -> NO MATCH (left empty)
     info.companyOfficers           -> NO MATCH (left empty)
-    Net Income / Diluted Avg Shares-> NOT NEEDED (data.py's EPS fallback; the db's
+    Net Income / Diluted Avg Shares-> NOT NEEDED (the old live path's EPS fallback; the db's
                                       eps_diluted already falls back to basic EPS)
-    info.sharesOutstanding         -> NOT NEEDED (data.py's fallback when the balance
+    info.sharesOutstanding         -> NOT NEEDED (the old live path's fallback when the balance
                                       sheet has no share count; csho is always there)
-    info.earningsGrowth            -> NOT USED (only the yfinance path's fallback
+    info.earningsGrowth            -> NOT USED (only the old live path's fallback
                                       when growth_estimates is missing)
 
 FLAG 1: ceq is common equity; Yahoo's "Stockholders Equity" also counts
@@ -51,8 +52,7 @@ non-operating income. For MSFT FY2026: $155.2B here vs $169.0B on Yahoo.
 
 FLAG 4: rule1.db has no pretax income (Compustat pi is in the raw dump but
 build_rule1_db.py doesn't load it), so the tax rate txt / pretax can't be
-computed. compute_roic then uses its existing 21% fallback for every year,
-exactly as the yfinance path does when Yahoo has no Pretax Income row.
+computed. compute_roic then uses its existing 21% fallback for every year.
 ni + txt is not a usable stand-in: it is off by up to 145% (JNJ), 39% (PG)
 and 19% (INTC) in the last 11 fiscal years.
 
@@ -92,6 +92,21 @@ REQUIRED_TABLES = ("companies", "fundamentals_annual", "fundamentals_quarterly",
 
 ANNUAL_COLUMNS = ("fyear", "revt", "eps_diluted", "ceq", "csho", "ajex",
                   "oancf", "capx", "dltt", "ebit")
+
+# The tickers rule1.db is built for, and so the only ones the app accepts.
+SUPPORTED_TICKERS = ("AAPL", "MSFT", "KO", "JNJ", "WMT", "PG", "XOM", "HD",
+                     "INTC", "CSCO", "HOG", "TSM")
+
+
+class UnsupportedTickerError(ValueError):
+    """Raised for a ticker outside SUPPORTED_TICKERS; str() is the user-facing message."""
+
+    def __init__(self, ticker: str):
+        self.ticker = ticker
+        super().__init__(
+            f"Sorry, \"{ticker}\" isn't available. This app only supports these "
+            f"{len(SUPPORTED_TICKERS)} tickers: {', '.join(SUPPORTED_TICKERS)}."
+        )
 
 
 def _connect(db_path: Path) -> sqlite3.Connection:

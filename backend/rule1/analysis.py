@@ -1,5 +1,5 @@
 """
-Ties data.py (scraping) / db_data.py (local rule1.db) and metrics.py (math) together into one
+Ties db_data.py (local rule1.db) and metrics.py (math) together into one
 per-company AnalysisResult, which report.py then prints / charts / compares.
 """
 
@@ -8,8 +8,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
-from .data import CompanyData, fetch_company_data
-from .db_data import db_covers, fetch_company_data_from_db
+from .data import CompanyData
+from .db_data import (
+    SUPPORTED_TICKERS, UnsupportedTickerError, db_covers, fetch_company_data_from_db,
+)
 from .metrics import (
     growth_rate_windows, average_windows, debt_payback_years, compute_sticker_price,
     is_green, debt_color, assess_moat, StickerPriceResult, MoatAssessment,
@@ -47,10 +49,20 @@ def _metric(label: str, series: "dict[int, float]", use_average: bool = False) -
 
 
 def load_company(ticker: str, years: int = 10) -> CompanyData:
-    """rule1.db for the tickers it covers, live yfinance for everything else."""
-    if db_covers(ticker):
-        return fetch_company_data_from_db(ticker)
-    return fetch_company_data(ticker, years=years)
+    """Read one of SUPPORTED_TICKERS from rule1.db, the only data source.
+
+    Raises UnsupportedTickerError (a friendly, user-facing message) for any
+    other ticker, and RuntimeError if rule1.db is missing or incomplete.
+    """
+    ticker = ticker.strip().upper()
+    if ticker not in SUPPORTED_TICKERS:
+        raise UnsupportedTickerError(ticker)
+    if not db_covers(ticker):
+        raise RuntimeError(
+            f"{ticker} is a supported ticker, but the local rule1.db is missing or doesn't "
+            "contain it. Build it with backend/build_rule1_db.py."
+        )
+    return fetch_company_data_from_db(ticker, history_years=years)
 
 
 def analyze(ticker: str, years: int = 10) -> AnalysisResult:

@@ -24,18 +24,19 @@
       <span class="brand-name">Rule&nbsp;#1 Calculator</span>
     </div>
 
-    <form id="search-form" autocomplete="off">
-      <label for="ticker-input" class="sr-only">Stock ticker</label>
-      <input id="ticker-input" name="ticker" type="text" placeholder="Ticker — AAPL, MSFT, COST…" maxlength="10" spellcheck="false">
+    <form id="search-form" autocomplete="off" data-tickers="{{ tickers | join(',') }}">
+      <label for="ticker-input" class="sr-only">Stock ticker (one of {{ tickers | join(', ') }})</label>
+      <input id="ticker-input" name="ticker" type="text" list="ticker-options" placeholder="Pick one of the {{ tickers | length }} tickers" maxlength="10" spellcheck="false">
+      <datalist id="ticker-options">
+        {% for t in tickers %}<option value="{{ t }}"></option>
+        {% endfor %}
+      </datalist>
       <button type="submit">Analyze</button>
     </form>
 
     <div class="quick-picks" id="quick-picks">
-      <button type="button" class="chip" data-ticker="AAPL">AAPL</button>
-      <button type="button" class="chip" data-ticker="MSFT">MSFT</button>
-      <button type="button" class="chip" data-ticker="COST">COST</button>
-      <button type="button" class="chip" data-ticker="JNJ">JNJ</button>
-      <button type="button" class="chip" data-ticker="XOM">XOM</button>
+      {% for t in tickers %}<button type="button" class="chip" data-ticker="{{ t }}">{{ t }}</button>
+      {% endfor %}
     </div>
   </div>
   <div id="status-area" aria-live="polite"></div>
@@ -78,7 +79,7 @@
     <div id="big-five-grid" class="stat-grid"></div>
     <div id="bigfive-detail" class="bigfive-detail">
       <img id="bigfive-chart" class="chart-img bigfive-img" src="" alt="Selected metric by year">
-      <p id="bigfive-chart-placeholder" class="chart-placeholder" hidden>Charts aren't available in cached/offline mode.</p>
+      <p id="bigfive-chart-placeholder" class="chart-placeholder" hidden>This chart couldn't be loaded.</p>
     </div>
   </section>
 
@@ -88,7 +89,7 @@
       <p class="card-sub">Sales, EPS, book value per share, and free cash flow — each indexed to its first year (=100) on a log scale, so they compare cleanly despite very different units.</p>
     </div>
     <img id="growth-chart" class="chart-img growth-img" src="" alt="Growth trends chart, indexed to first year">
-    <p id="growth-chart-placeholder" class="chart-placeholder" hidden>Chart isn't available in cached/offline mode.</p>
+    <p id="growth-chart-placeholder" class="chart-placeholder" hidden>This chart couldn't be loaded.</p>
   </section>
 
   <div class="grid-two">
@@ -99,7 +100,7 @@
           <p class="card-sub">Long-term debt payable within 3 years of free cash flow is Rule #1's bar.</p>
         </div>
         <img id="debt-chart" class="chart-img debt-img" src="" alt="Debt payback gauge">
-        <p id="debt-chart-placeholder" class="chart-placeholder" hidden>Chart isn't available in cached/offline mode.</p>
+        <p id="debt-chart-placeholder" class="chart-placeholder" hidden>This chart couldn't be loaded.</p>
       </section>
 
       <section class="card leadership-card">
@@ -108,7 +109,7 @@
           <p class="card-sub">The "Management" M — click a name to read about them on Wikipedia.</p>
         </div>
         <ul id="leadership-list" class="leadership-list"></ul>
-        <p id="leadership-placeholder" class="chart-placeholder leadership-placeholder" hidden>Leadership names aren't available in cached/offline mode.</p>
+        <p id="leadership-placeholder" class="chart-placeholder leadership-placeholder" hidden>No officer data was reported for this ticker.</p>
       </section>
     </div>
 
@@ -134,7 +135,7 @@
   <section class="card backtest-card" id="backtest-card">
     <div class="card-head">
       <h2>Backtest</h2>
-      <p class="card-sub">A live projection for buying today, then how this ticker's past Rule #1 buy signals played out. Historical numbers are read-only from <code>rule1.db</code>; each number names where it came from.</p>
+      <p class="card-sub">A projection for buying at <code>rule1.db</code>'s latest recorded price, then how this ticker's past Rule #1 buy signals played out. Historical numbers are read-only from <code>rule1.db</code>; each number names where it came from.</p>
     </div>
 
     <div class="bt-projection">
@@ -220,7 +221,7 @@
 </main>
 
 <footer>
-  <p>Runs entirely on this machine — nothing here is published or shared. AAPL, MSFT, KO, JNJ, WMT, PG, XOM, HD, INTC, CSCO, HOG and TSM are read from the local <code>rule1.db</code> (10 fiscal years); any other ticker is pulled live from Yahoo Finance via <code>yfinance</code>. Not investment advice.</p>
+  <p>Runs entirely on this machine — nothing here is published or shared. All figures are read from the local <code>rule1.db</code> (10 fiscal years), which covers {{ tickers | join(', ') }}; no other tickers are supported and nothing is fetched live. Not investment advice.</p>
 </footer>
 
 <script src="{{ url_for('static', filename='app.js') }}"></script>
