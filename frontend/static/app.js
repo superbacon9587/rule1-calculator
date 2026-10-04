@@ -36,6 +36,8 @@
     sourcesList: document.getElementById("sources-list"),
     leadershipList: document.getElementById("leadership-list"),
     leadershipPlaceholder: document.getElementById("leadership-placeholder"),
+    leadershipFooter: document.getElementById("leadership-footer"),
+    leadershipToggle: document.getElementById("leadership-toggle"),
   };
 
   let currentData = null;
@@ -128,8 +130,19 @@
     });
   }
 
-  function wikipediaUrl(name) {
-    return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(name)}&go=Go`;
+  // Leadership links come from Wikidata via rule1.db; anything that isn't a
+  // plain http(s) URL is dropped rather than put in an href.
+  function safeUrl(url) {
+    return typeof url === "string" && /^https?:\/\//i.test(url) ? url : "";
+  }
+
+  // escapeHtml leaves double quotes alone, which isn't enough inside an attribute.
+  function escapeAttr(str) {
+    return escapeHtml(str).replace(/"/g, "&quot;");
+  }
+
+  function externalLink(url, text, cls) {
+    return `<a class="${cls}" href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(text)}</a>`;
   }
 
   function fitLeadershipCard() {
@@ -139,10 +152,7 @@
     const stackedCol = document.querySelector(".stacked-col");
     if (!stickerCard || !debtCard || !leadershipCard || !stackedCol || !els.leadershipList) return;
 
-    leadershipCard.style.flex = "";
-    leadershipCard.style.height = "";
-    els.leadershipList.style.fontSize = "";
-    els.leadershipList.style.justifyContent = "";
+    leadershipCard.style.minHeight = "";
 
     const gapStr = getComputedStyle(stackedCol).rowGap || getComputedStyle(stackedCol).gap || "0";
     const gap = parseFloat(gapStr) || 0;
@@ -150,27 +160,44 @@
       - debtCard.getBoundingClientRect().height - gap;
     if (!(available > 0)) return;
 
-    leadershipCard.style.flex = `0 0 ${available}px`;
-    leadershipCard.style.height = `${available}px`;
-
-    if (els.leadershipList.hidden) return;
-
-    const MAX_FONT = 0.84, MIN_FONT = 0.6, STEP = 0.02;
-    let fontSize = MAX_FONT;
-    els.leadershipList.style.overflowY = "hidden";
-    for (; fontSize >= MIN_FONT; fontSize -= STEP) {
-      els.leadershipList.style.fontSize = fontSize.toFixed(2) + "rem";
-      if (els.leadershipList.scrollHeight <= els.leadershipList.clientHeight + 1) break;
-    }
-    const stillOverflowing = els.leadershipList.scrollHeight > els.leadershipList.clientHeight + 1;
-    els.leadershipList.style.overflowY = stillOverflowing ? "auto" : "hidden";
-    els.leadershipList.style.justifyContent = stillOverflowing ? "flex-start" : "center";
+    // A floor, not a fixed height: a short list still fills down to the Sticker
+    // Price card's bottom edge, a long one grows the card instead of shrinking
+    // its text or scrolling inside it.
+    leadershipCard.style.minHeight = `${available}px`;
   }
 
-  function renderLeadership(leadership) {
+  // Board members shown before the "Show all" toggle is used.
+  const LEADERSHIP_BOARD_LIMIT = 4;
+  let leadershipExpanded = false;
+  // Set when the board list was matched to the company's own board page.
+  let leadershipBoardCheckedOn = null;
+
+  function applyLeadershipToggle() {
+    if (!els.leadershipList || !els.leadershipToggle) return;
+    const items = Array.from(els.leadershipList.children);
+    const extra = items.filter((li) => li.dataset.extra === "1");
+    extra.forEach((li) => { li.hidden = !leadershipExpanded; });
+    els.leadershipToggle.hidden = !extra.length;
+    els.leadershipToggle.textContent = leadershipExpanded
+      ? "Show fewer"
+      : `Show full board (${items.length}${leadershipBoardCheckedOn ? "" : ", may be out of date"})`;
+    els.leadershipToggle.setAttribute("aria-expanded", String(leadershipExpanded));
+  }
+
+  function renderLeadership(leadership, checkedOn, boardCheckedOn) {
     if (!els.leadershipList || !els.leadershipPlaceholder) return;
     const people = (leadership || []).filter((p) => p && p.name);
+    if (els.leadershipFooter) {
+      els.leadershipFooter.hidden = !people.length;
+      els.leadershipFooter.textContent = "Names and links from Wikidata, with manual updates. " +
+        (checkedOn ? `Checked ${checkedOn}. ` : "") +
+        (boardCheckedOn ? `Board matched to the company's board page ${boardCheckedOn}. ` : "") +
+        "Leadership changes; verify on the company's site.";
+    }
+    leadershipExpanded = false;
+    leadershipBoardCheckedOn = boardCheckedOn || null;
     if (!people.length) {
+      if (els.leadershipToggle) els.leadershipToggle.hidden = true;
       els.leadershipList.innerHTML = "";
       els.leadershipList.hidden = true;
       els.leadershipPlaceholder.hidden = false;
@@ -179,12 +206,41 @@
     }
     els.leadershipList.hidden = false;
     els.leadershipPlaceholder.hidden = true;
-    els.leadershipList.innerHTML = people.map((p) => `
-      <li class="leadership-item">
-        <a class="leadership-name" href="${escapeHtml(wikipediaUrl(p.name))}" target="_blank" rel="noopener">${escapeHtml(p.name)}</a>
-        ${p.title ? `<span class="leadership-title">${escapeHtml(p.title)}</span>` : ""}
+    // The API sends CEO and chair first and board members last; only the board
+    // members past LEADERSHIP_BOARD_LIMIT start out hidden.
+    let boardSeen = 0;
+    els.leadershipList.innerHTML = people.map((p) => {
+      const extra = p.title === "Board member" && ++boardSeen > LEADERSHIP_BOARD_LIMIT;
+      const links = p.links || {};
+      // Wikipedia first, else the person's own site; with neither the name is plain text.
+      const nameUrl = safeUrl(links.wikipedia) || safeUrl(links.website);
+      const name = nameUrl
+        ? externalLink(nameUrl, p.name, "leadership-name")
+        : `<span class="leadership-name leadership-name-plain">${escapeHtml(p.name)}</span>`;
+      const social = [["X", safeUrl(links.x)], ["LinkedIn", safeUrl(links.linkedin)]]
+        .filter(([, url]) => url)
+        .map(([label, url]) => externalLink(url, label, "leadership-social"))
+        .join("");
+      const noteUrl = safeUrl(p.note_url);
+      const note = p.note
+        ? `<span class="leadership-note">${escapeHtml(p.note)}${noteUrl ? " " + externalLink(noteUrl, "Source", "leadership-social") : ""}</span>`
+        : "";
+      return `
+      <li class="leadership-item"${extra ? ' data-extra="1"' : ""}>
+        <span class="leadership-person">${name}${social}</span>
+        ${p.title ? `<span class="leadership-title" title="${escapeAttr(p.title)}">${escapeHtml(p.title)}</span>` : ""}
+        ${note}
       </li>
-    `).join("");
+    `;
+    }).join("");
+    applyLeadershipToggle();
+  }
+
+  if (els.leadershipToggle) {
+    els.leadershipToggle.addEventListener("click", () => {
+      leadershipExpanded = !leadershipExpanded;
+      applyLeadershipToggle();
+    });
   }
 
   function renderStickerTable(sticker) {
@@ -569,7 +625,7 @@
       fitLeadershipCard);
 
     if (data.sticker) renderStickerTable(data.sticker);
-    renderLeadership(data.leadership);
+    renderLeadership(data.leadership, data.leadership_checked_on, data.leadership_board_checked_on);
     requestAnimationFrame(fitLeadershipCard);
 
     if (els.sourcesList) {

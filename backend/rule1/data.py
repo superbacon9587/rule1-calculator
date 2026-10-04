@@ -39,7 +39,11 @@ class CompanyData:
 
     analyst_growth_estimate: Optional[float] = None  # 5-year, fraction (0.12 = 12%)
 
-    officers: "list[dict]" = field(default_factory=list)  # [{"name": ..., "title": ...}, ...]
+    # [{"name": ..., "title": ..., "links": {...}, "note": ..., "note_url": ...}, ...]
+    officers: "list[dict]" = field(default_factory=list)
+    officers_checked_on: Optional[str] = None  # YYYY-MM-DD the officers were retrieved
+    # YYYY-MM-DD the board list was matched to the company's own board page; None if it never was
+    officers_board_checked_on: Optional[str] = None
 
     data_source: str = "rule1.db"  # where the series came from (see db_data.py)
     source_urls: "list[str]" = field(default_factory=list)
