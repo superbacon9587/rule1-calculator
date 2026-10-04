@@ -29,7 +29,8 @@ Field mapping (Yahoo / yfinance line item -> rule1.db column):
     info.longName                  -> NO MATCH (the ticker is shown instead)
     info.currency                  -> NO MATCH (assumed USD; all 12 are USD in the dump)
     info.sector / info.industry    -> NO MATCH (left empty)
-    info.companyOfficers           -> NO MATCH (left empty)
+    info.companyOfficers           -> company_officers (Wikidata plus manual overrides, loaded
+                                      by scripts/build_officers.py; "high" confidence rows only)
     Net Income / Diluted Avg Shares-> NOT NEEDED (the old live path's EPS fallback; the db's
                                       eps_diluted already falls back to basic EPS)
     info.sharesOutstanding         -> NOT NEEDED (the old live path's fallback when the balance
@@ -146,6 +147,47 @@ def _num(v) -> Optional[float]:
     return f if f == f else None  # filter NaN
 
 
+def _fetch_officers(conn: sqlite3.Connection, ticker: str) -> "list[dict]":
+    """One entry per person from company_officers (built by scripts/build_officers.py),
+    CEO and Chairperson first and board members last, with that person's titles
+    joined. Only "high" confidence rows: a "review" row is one Wikidata may not
+    have kept current. Empty when the table hasn't been built."""
+    has_table = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'company_officers'").fetchone()
+    if has_table is None:
+        return []
+    people: "dict[str, dict]" = {}
+    titles: "dict[str, list[str]]" = {}
+    for r in conn.execute(
+        "SELECT person_name, title, wikidata_id, wikipedia_url, website_url, x_url, linkedin_url, "
+        "note, note_url, retrieved_at, board_checked_on FROM company_officers WHERE ticker = ? AND confidence = 'high' "
+        # CEO, then any chair title, then other officers, then board members
+        "ORDER BY CASE WHEN title = 'Chief Executive Officer' THEN 0 WHEN lower(title) LIKE '%chair%' THEN 1 "
+        "WHEN title = 'Board member' THEN 3 ELSE 2 END, rowid", (ticker,)
+    ):
+        key = r["wikidata_id"]
+        person = people.setdefault(key, {
+            "name": r["person_name"],
+            "title": "",
+            "links": {"wikipedia": r["wikipedia_url"], "x": r["x_url"],
+                      "linkedin": r["linkedin_url"], "website": r["website_url"]},
+            "note": None,
+            "note_url": None,
+            "checked_on": (r["retrieved_at"] or "")[:10] or None,
+            "board_checked_on": r["board_checked_on"],
+        })
+        if r["note"] and not person["note"]:
+            person["note"], person["note_url"] = r["note"], r["note_url"]
+        titles.setdefault(key, []).append(r["title"])
+    for key, person in people.items():
+        # the two rows of someone who is both CEO and chair read as one title
+        if titles[key] == ["Chief Executive Officer", "Chairperson"]:
+            person["title"] = "CEO and Chair"
+        else:
+            person["title"] = ", ".join(titles[key])
+    return list(people.values())
+
+
 def fetch_company_data_from_db(ticker: str, db_path: Path = DEFAULT_DB_PATH,
                                 history_years: int = HISTORY_YEARS) -> CompanyData:
     ticker = ticker.strip().upper()
@@ -178,6 +220,7 @@ def fetch_company_data_from_db(ticker: str, db_path: Path = DEFAULT_DB_PATH,
             "WHERE ticker = ? AND adj_close IS NOT NULL AND date >= ? ORDER BY date",
             (ticker, f"{first_year:04d}-01-01"),
         ).fetchall()
+        officers = _fetch_officers(conn, ticker)
     finally:
         conn.close()
 
@@ -193,8 +236,17 @@ def fetch_company_data_from_db(ticker: str, db_path: Path = DEFAULT_DB_PATH,
         f"{db_path.name}: analyst_growth (I/B/E/S long-term growth)",
         f"{db_path.name}: prices_daily (CRSP daily)",
     ]
-    warnings.append("Company name, sector, industry and officers aren't in rule1.db, so they're left blank "
-                    "for this ticker; currency is assumed to be USD.")
+    if officers:
+        data.officers = officers
+        data.officers_checked_on = max((o.pop("checked_on") or "" for o in officers), default="") or None
+        data.officers_board_checked_on = max((o.pop("board_checked_on") or "" for o in officers),
+                                             default="") or None
+        data.source_urls.append(f"{db_path.name}: company_officers (Wikidata, with manual overrides)")
+        warnings.append("Company name, sector and industry aren't in rule1.db, so they're left blank "
+                        "for this ticker; currency is assumed to be USD.")
+    else:
+        warnings.append("Company name, sector, industry and officers aren't in rule1.db, so they're left blank "
+                        "for this ticker; currency is assumed to be USD.")
     warnings.append("rule1.db has no pretax income, so ROIC uses the 21% fallback tax rate for every year, "
                     "and its EBIT is Compustat operating income rather than Yahoo's pretax income + interest.")
 

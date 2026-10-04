@@ -1,0 +1,136 @@
+ticker,person_name,title,wikidata_id,wikipedia_url,website_url,x_url,linkedin_url,source,retrieved_at,confidence,note,note_url,board_checked_on
+AAPL,John Ternus,Chief Executive Officer,Q106028933,https://en.wikipedia.org/wiki/John_Ternus,https://www.apple.com/leadership/john-ternus/,https://x.com/johnternus,https://www.linkedin.com/in/john-ternus-2392b76/,https://www.wikidata.org/wiki/Q312#P169,2026-10-04T18:27:35Z,high,,,2026-10-04
+AAPL,Tim Cook,Chairperson,Q265852,https://en.wikipedia.org/wiki/Tim_Cook,https://www.apple.com/leadership/tim-cook/,https://x.com/tim_cook,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+AAPL,Arthur D. Levinson,Board member,Q709063,https://en.wikipedia.org/wiki/Arthur_D._Levinson,,,,https://www.wikidata.org/wiki/Q312#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+AAPL,Andrea Jung,Board member,Q271117,https://en.wikipedia.org/wiki/Andrea_Jung,,,,https://www.wikidata.org/wiki/Q312#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+AAPL,Ronald Sugar,Board member,Q7365310,https://en.wikipedia.org/wiki/Ronald_Sugar,,,,https://www.wikidata.org/wiki/Q312#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+AAPL,Susan Wagner,Board member,Q17388808,https://en.wikipedia.org/wiki/Susan_Wagner,,,,https://www.wikidata.org/wiki/Q312#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+AAPL,Wanda Austin,Board member,manual:Wanda Austin,,https://www.apple.com/leadership/,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+AAPL,Alex Gorsky,Board member,Q16193601,https://en.wikipedia.org/wiki/Alex_Gorsky,,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+AAPL,Monica C. Lozano,Board member,Q1557228,https://en.wikipedia.org/wiki/Monica_C._Lozano,http://www.impre.com/laopinion/,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+CSCO,Chuck Robbins,Chief Executive Officer,Q21041473,https://en.wikipedia.org/wiki/Chuck_Robbins,,https://x.com/ChuckRobbins,,https://www.wikidata.org/wiki/Q173395#P169,2026-10-04T18:27:35Z,high,,,
+CSCO,Chuck Robbins,Chairperson,Q21041473,https://en.wikipedia.org/wiki/Chuck_Robbins,,https://x.com/ChuckRobbins,,manual override,2026-10-04T18:29:03Z,high,,,
+CSCO,John Chambers,Director / manager,Q1393271,https://en.wikipedia.org/wiki/John_T._Chambers,,,https://www.linkedin.com/in/johnchambersjc/,https://www.wikidata.org/wiki/Q173395#P1037,2026-10-04T18:27:35Z,review,,,
+CSCO,Michael David Capellas,Board member,Q6829086,https://en.wikipedia.org/wiki/Michael_Capellas,,,,https://www.wikidata.org/wiki/Q173395#P3320,2026-10-04T18:27:35Z,high,,,
+CSCO,Kristina M. Johnson,Board member,Q41651,https://en.wikipedia.org/wiki/Kristina_M._Johnson,,,,https://www.wikidata.org/wiki/Q173395#P3320,2026-10-04T18:27:35Z,high,,,
+CSCO,Mark Garrett,Board member,Q114626552,https://en.wikipedia.org/wiki/Mark_Garrett,,,https://www.linkedin.com/in/markgarrett1/,https://www.wikidata.org/wiki/Q173395#P3320,2026-10-04T18:27:35Z,high,,,
+CSCO,John Harris,Board member,Q114626810,,,,https://www.linkedin.com/in/john-harris-6b4664168/,https://www.wikidata.org/wiki/Q173395#P3320,2026-10-04T18:27:35Z,high,,,
+CSCO,Marianna Tessel,Board member,Q114627246,,,,https://www.linkedin.com/in/mariannatessel/,https://www.wikidata.org/wiki/Q173395#P3320,2026-10-04T18:27:35Z,high,,,
+CSCO,Sarah Rae Murphy,Board member,Q114627080,,,,https://www.linkedin.com/in/sarah-rae-murphy/,https://www.wikidata.org/wiki/Q173395#P3320,2026-10-04T18:27:35Z,high,,,
+CSCO,Pete Shimer,Board member,manual:Pete Shimer,,https://newsroom.cisco.com/c/r/newsroom/en/us/a/y2026/m04/cisco-appoints-pete-shimer-to-its-board-of-directors.html,,,manual override,2026-10-04T18:29:03Z,high,,,
+CSCO,Kevin Weil,Board member,manual:Kevin Weil,,https://newsroom.cisco.com/c/r/newsroom/en/us/a/y2025/m05/cisco-appoints-kevin-weil-to-its-board-of-directors.html,,,manual override,2026-10-04T18:29:03Z,high,,,
+HD,Ted Decker,Chief Executive Officer,Q113632708,https://en.wikipedia.org/wiki/Ted_Decker,,,https://www.linkedin.com/in/teddecker/,https://www.wikidata.org/wiki/Q864407#P169,2026-10-04T18:27:35Z,high,Temporarily on leave; two executives running the company,https://ir.homedepot.com/news-releases/2026/08-12-2026-140442024,2026-10-04
+HD,Greg Brenneman,Chair (while CEO is on leave),Q5605326,https://en.wikipedia.org/wiki/Greg_Brenneman,,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+HD,Ari Bousbib,Board member,Q109664287,,,,,https://www.wikidata.org/wiki/Q864407#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+HD,Frank Brown,Board member,Q109664714,,https://www.generalatlantic.com/people/team/frank-brown/,,,https://www.wikidata.org/wiki/Q864407#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+HD,Wayne Hewett,Board member,Q109666471,,,,,https://www.wikidata.org/wiki/Q864407#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+HD,Gerard Arpey,Board member,Q3760907,https://en.wikipedia.org/wiki/Gerard_Arpey,,,,https://www.wikidata.org/wiki/Q864407#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+HD,Jeff Boyd,Board member,Q109664553,,,,https://www.linkedin.com/in/jeffery-boyd-901731a2/,https://www.wikidata.org/wiki/Q864407#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+HD,Manny Kadre,Board member,Q109666513,,,,,https://www.wikidata.org/wiki/Q864407#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+HD,Stephanie Linnartz,Board member,Q109666548,,,,https://www.linkedin.com/in/stephanielinnartz/,https://www.wikidata.org/wiki/Q864407#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+HD,Caryn Seidman Becker,Board member,Q111576821,,,,https://www.linkedin.com/in/carynseidmanbecker/,https://www.wikidata.org/wiki/Q864407#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+HD,Paula Santilli,Board member,Q114419922,,,,https://www.linkedin.com/in/paulasantilli/,https://www.wikidata.org/wiki/Q864407#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+HD,Asha Sharma,Board member,manual:Asha Sharma,,https://ir.homedepot.com/corporate-governance/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+INTC,Lip-Bu Tan,Chief Executive Officer,Q19561225,https://en.wikipedia.org/wiki/Lip-Bu_Tan,,,,manual override,2026-10-04T18:29:03Z,high,,,
+INTC,Frank Yeary,Chairperson,Q109751224,,https://www.intc.com/news-events/press-releases/detail/1731/introducing-intels-next-ceo,,,manual override,2026-10-04T18:29:03Z,high,,,
+INTC,Tsu-Jae King Liu,Board member,Q64009348,https://en.wikipedia.org/wiki/Tsu-Jae_King_Liu,,,,https://www.wikidata.org/wiki/Q248#P3320,2026-10-04T18:27:35Z,high,,,
+INTC,Greg Smith,Board member,Q80120949,,,,,https://www.wikidata.org/wiki/Q248#P3320,2026-10-04T18:27:35Z,high,,,
+INTC,Omar Ishrak,Board member,Q83780224,https://en.wikipedia.org/wiki/Omar_Ishrak,,,https://www.linkedin.com/in/omar-ishrak/,https://www.wikidata.org/wiki/Q248#P3320,2026-10-04T18:27:35Z,high,,,
+INTC,Risa Lavizzo-Mourey,Board member,Q7335804,https://en.wikipedia.org/wiki/Risa_Lavizzo-Mourey,,,https://www.linkedin.com/in/risalavizzo/,https://www.wikidata.org/wiki/Q248#P3320,2026-10-04T18:27:35Z,high,,,
+INTC,Jim Goetz,Board member,Q6195257,https://en.wikipedia.org/wiki/Jim_Goetz,,https://x.com/jimgoetz,https://www.linkedin.com/in/goetzjim/,https://www.wikidata.org/wiki/Q248#P3320,2026-10-04T18:27:35Z,high,,,
+INTC,Alyssa Henry,Board member,Q109743613,,,https://x.com/alyssahhenry,https://www.linkedin.com/in/alyssa-henry-0905692/,https://www.wikidata.org/wiki/Q248#P3320,2026-10-04T18:27:35Z,high,,,
+INTC,Dion Weisler,Board member,Q26923230,https://en.wikipedia.org/wiki/Dion_Weisler,,https://x.com/dionweisler,,https://www.wikidata.org/wiki/Q248#P3320,2026-10-04T18:27:35Z,high,,,
+INTC,Pat Gelsinger,Board member,Q7143480,https://en.wikipedia.org/wiki/Pat_Gelsinger,,https://x.com/PGelsinger,,https://www.wikidata.org/wiki/Q248#P3320,2026-10-04T18:27:35Z,review,,,
+INTC,Andrea Goldsmith,Board member,Q20638131,https://en.wikipedia.org/wiki/Andrea_Goldsmith_(engineer),https://profiles.stanford.edu/andrea-goldsmith,,,https://www.wikidata.org/wiki/Q248#P3320,2026-10-04T18:27:35Z,high,,,
+JNJ,Joaquin Duato,Chief Executive Officer,Q113356474,https://en.wikipedia.org/wiki/Joaqu%C3%ADn_Duato,,,,https://www.wikidata.org/wiki/Q333718#P169,2026-10-04T18:27:35Z,high,,,2026-10-04
+JNJ,Joaquin Duato,Chairperson,Q113356474,https://en.wikipedia.org/wiki/Joaqu%C3%ADn_Duato,,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+JNJ,William C. Weldon,Director / manager,Q2578222,https://en.wikipedia.org/wiki/William_C._Weldon,,,,https://www.wikidata.org/wiki/Q333718#P1037,2026-10-04T18:27:35Z,review,,,2026-10-04
+JNJ,Mark McClellan,Board member,Q6768777,https://en.wikipedia.org/wiki/Mark_McClellan,,,https://www.linkedin.com/in/mmcclellanduke/,https://www.wikidata.org/wiki/Q333718#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+JNJ,Mary Beckerle,Board member,Q18684686,https://en.wikipedia.org/wiki/Mary_Beckerle,,,,https://www.wikidata.org/wiki/Q333718#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+JNJ,Jennifer Doudna,Board member,Q56068,https://en.wikipedia.org/wiki/Jennifer_Doudna,,,,https://www.wikidata.org/wiki/Q333718#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+JNJ,Marillyn Hewson,Board member,Q4953889,https://en.wikipedia.org/wiki/Marillyn_Hewson,,,https://www.linkedin.com/in/marillyn-hewson-24763179/,https://www.wikidata.org/wiki/Q333718#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+JNJ,Mark Weinberger,Board member,Q14538344,https://en.wikipedia.org/wiki/Mark_Weinberger,,https://x.com/Mark_Weinberger,https://www.linkedin.com/in/markaweinberger/,https://www.wikidata.org/wiki/Q333718#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+JNJ,Hubert Joly,Board member,Q16193174,https://en.wikipedia.org/wiki/Hubert_Joly,https://www.hubertjoly.org/,,,https://www.wikidata.org/wiki/Q333718#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+JNJ,Nadja West,Board member,Q22089391,https://en.wikipedia.org/wiki/Nadja_West,,,,https://www.wikidata.org/wiki/Q333718#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+JNJ,Paula Johnson,Board member,Q23498304,https://en.wikipedia.org/wiki/Paula_Johnson,,https://x.com/DrPaulaJohnson,,https://www.wikidata.org/wiki/Q333718#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+JNJ,John G. Morikis,Board member,manual:John G. Morikis,,https://www.jnj.com/our-leadership-team,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+JNJ,Daniel E. Pinto,Board member,manual:Daniel E. Pinto,,https://www.jnj.com/our-leadership-team,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+JNJ,Eugene A. Woods,Board member,manual:Eugene A. Woods,,https://www.jnj.com/our-leadership-team,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+KO,Henrique Braun,Chief Executive Officer,manual:Henrique Braun,,https://www.coca-colacompany.com/about-us/leadership,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+KO,James Quincey,Executive Chairman,Q27839505,https://en.wikipedia.org/wiki/James_Quincey,,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+KO,Ana Botín,Board member,Q299646,https://en.wikipedia.org/wiki/Ana_Bot%C3%ADn,,https://x.com/AnaBotin,,https://www.wikidata.org/wiki/Q3295867#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+KO,David Weinberg,Board member,Q112035737,,,,,https://www.wikidata.org/wiki/Q3295867#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+KO,Chris Davis,Board member,Q114351258,,https://www.coca-colacompany.com/company/leadership/christopher-davis,,,https://www.wikidata.org/wiki/Q3295867#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+KO,Caroline Tsay,Board member,Q114899117,,,,https://www.linkedin.com/in/jacintatsay/,https://www.wikidata.org/wiki/Q3295867#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+KO,Herbert Allen III,Board member,Q16146464,https://en.wikipedia.org/wiki/Herbert_Allen_III,,,,https://www.wikidata.org/wiki/Q3295867#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+KO,Carolyn Everson,Board member,Q114893069,,,https://x.com/ceverson,https://www.linkedin.com/in/carolyn-everson-8633479/,https://www.wikidata.org/wiki/Q3295867#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+KO,Bela Bajaria,Board member,manual:Bela Bajaria,,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+KO,Thomas S. Gayner,Board member,manual:Thomas S. Gayner,,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+KO,Max Levchin,Board member,manual:Max Levchin,,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+KO,Amity Millhiser,Board member,manual:Amity Millhiser,,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+MSFT,Satya Nadella,Chief Executive Officer,Q7426870,https://en.wikipedia.org/wiki/Satya_Nadella,https://news.microsoft.com/exec/satya-nadella/,https://x.com/satyanadella,https://www.linkedin.com/in/satyanadella/,https://www.wikidata.org/wiki/Q2283#P169,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,Satya Nadella,Chairperson,Q7426870,https://en.wikipedia.org/wiki/Satya_Nadella,https://news.microsoft.com/exec/satya-nadella/,https://x.com/satyanadella,https://www.linkedin.com/in/satyanadella/,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+MSFT,Charlie Scharf,Board member,Q18386868,https://en.wikipedia.org/wiki/Charles_Scharf,,,,https://www.wikidata.org/wiki/Q2283#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,John W. Stanton,Board member,Q6262563,https://en.wikipedia.org/wiki/John_W._Stanton,,,,https://www.wikidata.org/wiki/Q2283#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,Teri List,Board member,Q80050392,,,,,https://www.wikidata.org/wiki/Q2283#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,Sandi Peterson,Board member,Q20984972,https://en.wikipedia.org/wiki/Sandi_Peterson,,,https://www.linkedin.com/in/sandra-peterson/,https://www.wikidata.org/wiki/Q2283#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,Reid Hoffman,Board member,Q211098,https://en.wikipedia.org/wiki/Reid_Hoffman,http://reidhoffman.org/,https://x.com/reidhoffman,https://www.linkedin.com/in/reidhoffman/,https://www.wikidata.org/wiki/Q2283#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,Penny Pritzker,Board member,Q293365,https://en.wikipedia.org/wiki/Penny_Pritzker,,https://x.com/PennyPritzker,,https://www.wikidata.org/wiki/Q2283#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,Hugh Francis Johnston,Board member,Q80049510,,,,,https://www.wikidata.org/wiki/Q2283#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,Emma Walmsley,Board member,Q27058352,https://en.wikipedia.org/wiki/Emma_Walmsley,,,https://www.linkedin.com/in/emma-walmsley-16936219/,https://www.wikidata.org/wiki/Q2283#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,Catherine MacGregor,Board member,Q107352040,https://en.wikipedia.org/wiki/Catherine_MacGregor,,https://x.com/cathmacgregor,,https://www.wikidata.org/wiki/Q2283#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,Mark Mason,Board member,Q107750634,https://en.wikipedia.org/wiki/Mark_Mason_(executive),,,,https://www.wikidata.org/wiki/Q2283#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+MSFT,Carmine Di Sibio,Board member,manual:Carmine Di Sibio,,https://news.microsoft.com/leadership/?section=board-members,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+MSFT,John David Rainey,Board member,manual:John David Rainey,,https://news.microsoft.com/leadership/?section=board-members,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+PG,Shailesh Jejurikar,Chief Executive Officer,manual:Shailesh Jejurikar,,https://us.pg.com/leadership-team/,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+PG,Shailesh Jejurikar,Chairperson,manual:Shailesh Jejurikar,,https://us.pg.com/leadership-team/,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+PG,Amy Chang,Board member,Q109773654,,,,https://www.linkedin.com/in/changamy/,https://www.wikidata.org/wiki/Q212405#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+PG,Joseph Jimenez,Board member,Q6284393,https://en.wikipedia.org/wiki/Joseph_Jimenez,,,,https://www.wikidata.org/wiki/Q212405#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+PG,Christine McCarthy,Board member,Q20714442,https://en.wikipedia.org/wiki/Christine_McCarthy,,,https://www.linkedin.com/in/christine-mccarthy-97953215/,https://www.wikidata.org/wiki/Q212405#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+PG,Debra Lee,Board member,Q5248484,https://en.wikipedia.org/wiki/Debra_L._Lee,,,,https://www.wikidata.org/wiki/Q212405#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+PG,Marc Allen,Board member,Q109773425,,,,,https://www.wikidata.org/wiki/Q212405#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+PG,Chris Kempczinski,Board member,Q73426541,https://en.wikipedia.org/wiki/Chris_Kempczinski,,,,https://www.wikidata.org/wiki/Q212405#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+PG,Raj Subramaniam,Board member,Q109570254,,https://www.fedex.com/en-us/about/leadership/raj-subramaniam.html,,https://www.linkedin.com/in/rajeshsubramaniam1/,https://www.wikidata.org/wiki/Q212405#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+PG,Rob Portman,Board member,Q926069,https://en.wikipedia.org/wiki/Rob_Portman,http://www.portman.senate.gov,,,https://www.wikidata.org/wiki/Q212405#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+PG,Sheila Bonini,Board member,Q125157495,,,,,https://www.wikidata.org/wiki/Q212405#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+PG,Brett Biggs,Board member,Q125157381,,,,,https://www.wikidata.org/wiki/Q212405#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+PG,Craig Arnold,Board member,manual:Craig Arnold,,https://us.pg.com/board-of-directors/,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+PG,Ashley McEvoy,Board member,manual:Ashley McEvoy,,https://us.pg.com/board-of-directors/,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+TSM,C. C. Wei,Chief Executive Officer,Q115649193,https://en.wikipedia.org/wiki/Che-Chia_Wei,,,,https://www.wikidata.org/wiki/Q713418#P169,2026-10-04T18:27:35Z,high,,,2026-10-04
+TSM,C. C. Wei,Chairperson,Q115649193,https://en.wikipedia.org/wiki/Che-Chia_Wei,,,,https://www.wikidata.org/wiki/Q713418#P488,2026-10-04T18:27:35Z,high,,,2026-10-04
+TSM,F.C. Tseng,Board member,manual:F.C. Tseng,,https://investor.tsmc.com/english/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+TSM,Chun-Hsien Yeh,Board member,manual:Chun-Hsien Yeh,,https://investor.tsmc.com/english/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+TSM,Sir Peter L. Bonfield,Board member,manual:Sir Peter L. Bonfield,,https://investor.tsmc.com/english/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+TSM,Michael R. Splinter,Board member,manual:Michael R. Splinter,,https://investor.tsmc.com/english/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+TSM,Moshe N. Gavrielov,Board member,manual:Moshe N. Gavrielov,,https://investor.tsmc.com/english/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+TSM,L. Rafael Reif,Board member,manual:L. Rafael Reif,,https://investor.tsmc.com/english/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+TSM,Ursula M. Burns,Board member,manual:Ursula M. Burns,,https://investor.tsmc.com/english/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+TSM,Lynn L. Elsenhans,Board member,manual:Lynn L. Elsenhans,,https://investor.tsmc.com/english/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+TSM,Chuan Lin,Board member,manual:Chuan Lin,,https://investor.tsmc.com/english/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+WMT,John Furner,Chief Executive Officer,Q99670302,https://en.wikipedia.org/wiki/John_Furner,https://corporate.walmart.com/about/leadership/john-furner,,https://www.linkedin.com/in/furner/,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+WMT,Sam Walton,Chairperson,Q497827,https://en.wikipedia.org/wiki/Sam_Walton,,,,https://www.wikidata.org/wiki/Q483551#P488,2026-10-04T18:27:35Z,review,,,2026-10-04
+WMT,S. Robson Walton,Chairperson,Q736477,https://en.wikipedia.org/wiki/Rob_Walton,,,,https://www.wikidata.org/wiki/Q483551#P488,2026-10-04T18:27:35Z,review,,,2026-10-04
+WMT,Greg Penner,Chairperson,Q20177269,https://en.wikipedia.org/wiki/Greg_Penner,,,,https://www.wikidata.org/wiki/Q483551#P488,2026-10-04T18:27:35Z,high,,,2026-10-04
+WMT,Marissa Mayer,Board member,Q14086,https://en.wikipedia.org/wiki/Marissa_Mayer,,https://x.com/marissamayer,https://www.linkedin.com/in/marissamayer/,https://www.wikidata.org/wiki/Q483551#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+WMT,Thomas Horton,Board member,Q7794754,https://en.wikipedia.org/wiki/Thomas_W._Horton,,,,https://www.wikidata.org/wiki/Q483551#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+WMT,Steuart Walton,Board member,Q24524594,https://en.wikipedia.org/wiki/Steuart_Walton,,,,https://www.wikidata.org/wiki/Q483551#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+WMT,Carla A. Harris,Board member,Q108001876,,http://carlaspearls.com,,,https://www.wikidata.org/wiki/Q483551#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+WMT,Sarah Friar,Board member,Q107434318,https://en.wikipedia.org/wiki/Sarah_Friar,,,https://www.linkedin.com/in/sarah-friar-922b044/,https://www.wikidata.org/wiki/Q483551#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+WMT,Cesar Conde,Board member,Q5065434,https://en.wikipedia.org/wiki/Cesar_Conde,,,https://www.linkedin.com/in/conde-cesar/,https://www.wikidata.org/wiki/Q483551#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+WMT,Randall L. Stephenson,Board member,Q979750,https://en.wikipedia.org/wiki/Randall_L._Stephenson,,,,https://www.wikidata.org/wiki/Q483551#P3320,2026-10-04T18:27:35Z,high,,,2026-10-04
+WMT,Shishir Mehrotra,Board member,manual:Shishir Mehrotra,,https://corporate.walmart.com/about/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+WMT,Bob Moritz,Board member,manual:Bob Moritz,,https://corporate.walmart.com/about/board-of-directors,,,manual override,2026-10-04T18:29:03Z,high,,,2026-10-04
+XOM,Darren Woods,Chief Executive Officer,Q28018191,https://en.wikipedia.org/wiki/Darren_Woods,,,,https://www.wikidata.org/wiki/Q156238#P169,2026-10-04T18:27:35Z,high,,,
+XOM,Angela Braly,Board member,Q527495,https://en.wikipedia.org/wiki/Angela_Braly,,,,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+XOM,Susan Avery,Board member,Q18156599,https://en.wikipedia.org/wiki/Susan_Avery,,,,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+XOM,Steven A. Kandarian,Board member,Q5188669,https://en.wikipedia.org/wiki/Steven_A._Kandarian,,,,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+XOM,Jay Hooley,Board member,Q107985563,,,,,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+XOM,Michael J. Angelakis,Board member,Q107973729,,https://www.atairos.com/our-team/michael-j-angelakis/,,,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+XOM,Jeffrey W. Ubben,Board member,Q21266693,https://en.wikipedia.org/wiki/Jeffrey_W._Ubben,,,,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+XOM,Kaisa Hietala,Board member,Q107048667,https://en.wikipedia.org/wiki/Kaisa_Hietala,,https://x.com/HietalaKaisa,,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+XOM,Gregory J. Goff,Board member,Q19663942,https://en.wikipedia.org/wiki/Gregory_J._Goff,,,,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+XOM,Andy Karsner,Board member,Q19816316,https://en.wikipedia.org/wiki/Andy_Karsner,,,,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+XOM,John Harris,Board member,Q114626810,,,,https://www.linkedin.com/in/john-harris-6b4664168/,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+XOM,Larry Kellner,Board member,Q6490609,https://en.wikipedia.org/wiki/Larry_Kellner,,,,https://www.wikidata.org/wiki/Q156238#P3320,2026-10-04T18:27:35Z,high,,,
+HOG,Artie Starrs,Chief Executive Officer,manual:Artie Starrs,,https://investor.harley-davidson.com/news/news-details/2025/Harley-Davidson-Appoints-Artie-Starrs-as-President-and-Chief-Executive-Officer/default.aspx,,,manual override,2026-10-04T18:29:03Z,high,,,
+HOG,Troy Alstead,Chairperson,manual:Troy Alstead,,https://s201.q4cdn.com/697889289/files/doc_governance/2025/Oct/15/2025-10-01-HDI-Board-Chair-Committee-Members-and-Chairs-054e61.pdf,,,manual override,2026-10-04T18:29:03Z,high,,,

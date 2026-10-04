@@ -81,7 +81,10 @@ Then open **http://127.0.0.1:5000** in your browser. Type a ticker into the
 search bar (or click one of the 12 ticker chips) and it computes
 and displays everything: the Big Five stat tiles (click any one to chart
 that metric's raw values by year, bar-chart style), a **Leadership** card
-(the "Management" M — empty for now, since `rule1.db` has no officer data), the growth trends chart
+(the "Management" M — current officers and directors from Wikidata, corrected by the
+hand-maintained `backend/data/officer_overrides.csv`, loaded into
+`rule1.db` by `python scripts/build_officers.py`; `--from-csv` reloads them from
+`backend/data/company_officers.csv` without the network), the growth trends chart
 (sales/EPS/equity/free cash flow indexed to their first year so very
 different units compare cleanly on one log-scale axis), the debt-payback
 gauge, the full Sticker Price walk-through as a table, and — last — the

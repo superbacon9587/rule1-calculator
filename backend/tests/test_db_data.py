@@ -121,6 +121,68 @@ def test_current_values_use_latest_rows():
     assert c.data_source == "rule1.db"
 
 
+def _add_officers(db: Path) -> None:
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE company_officers (ticker, person_name, title, wikidata_id, wikipedia_url, "
+                 "website_url, x_url, linkedin_url, source, retrieved_at, confidence, note, note_url, "
+                 "board_checked_on)")
+    when = "2026-10-04T00:00:00Z"
+    conn.executemany("INSERT INTO company_officers VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", [
+        ("TST", "Bo Director", "Board member", "Q4", None, None, None, None, "src", when, "high", None, None, "2026-10-03"),
+        ("TST", "Ann Lee", "Board member", "Q1", "https://en.wikipedia.org/wiki/Ann_Lee", None,
+         "https://x.com/annlee", None, "src", when, "high", "On leave", "https://example.com/leave", "2026-10-03"),
+        ("TST", "Old Chair", "Chairperson", "Q2", None, None, None, None, "src", when, "review", None, None, "2026-10-03"),
+        ("OTH", "Someone Else", "Chairperson", "Q3", None, None, None, None, "src", when, "high", None, None, "2026-10-03"),
+        ("TST", "New Chair", "Chairperson", "manual:New Chair", None, None, None, None, "manual override", when, "high", None, None, "2026-10-03"),
+        ("TS2", "Both Roles", "Chairperson", "Q5", None, None, None, None, "src", when, "high", None, None, "2026-10-03"),
+        ("TS2", "Both Roles", "Chief Executive Officer", "Q5", None, None, None, None, "src", when, "high", None, None, "2026-10-03"),
+        ("TST", "Ann Lee", "Chief Executive Officer", "Q1", "https://en.wikipedia.org/wiki/Ann_Lee", None,
+         "https://x.com/annlee", None, "src", when, "high", "On leave", "https://example.com/leave", "2026-10-03"),
+    ])
+    conn.commit()
+    conn.close()
+
+
+def test_officers_are_left_empty_without_the_table():
+    d = _load()
+    assert d.officers == []
+    assert any("officers aren't in rule1.db" in w for w in d.warnings)
+
+
+def test_officers_come_from_company_officers():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = _build_db(tmp)
+        _add_officers(db)
+        d = fetch_company_data_from_db("TST", db_path=db)
+    # one entry per person, titles joined, CEO then Chair then board; the "review" row and the
+    # other ticker's row are left out
+    no_links = {"wikipedia": None, "x": None, "linkedin": None, "website": None}
+    assert d.officers == [
+        {"name": "Ann Lee", "title": "Chief Executive Officer, Board member",
+         "links": {"wikipedia": "https://en.wikipedia.org/wiki/Ann_Lee", "x": "https://x.com/annlee",
+                   "linkedin": None, "website": None},
+         "note": "On leave", "note_url": "https://example.com/leave"},
+        {"name": "New Chair", "title": "Chairperson", "links": no_links, "note": None, "note_url": None},
+        {"name": "Bo Director", "title": "Board member", "links": no_links, "note": None, "note_url": None},
+    ]
+    assert d.officers_checked_on == "2026-10-04"
+    assert d.officers_board_checked_on == "2026-10-03"
+
+
+def test_ceo_who_is_also_chair_is_one_entry():
+    with tempfile.TemporaryDirectory() as tmp:
+        db = _build_db(tmp)
+        _add_officers(db)
+        conn = sqlite3.connect(db)
+        conn.execute("UPDATE company_officers SET ticker = 'TST' WHERE ticker = 'TS2'")
+        conn.commit()
+        conn.close()
+        d = fetch_company_data_from_db("TST", db_path=db)
+    assert [(o["name"], o["title"]) for o in d.officers][:2] == [
+        ("Both Roles", "CEO and Chair"), ("Ann Lee", "Chief Executive Officer, Board member")]
+    assert not any("officers" in w for w in d.warnings)
+
+
 def test_unsupported_ticker_raises_friendly_error_listing_supported():
     try:
         load_company("tsla")

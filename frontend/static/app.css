@@ -505,29 +505,22 @@ main {
   margin: 0;
 }
 
-/* ---------- Leadership (stacked under Debt payback; fills to the
-   Sticker Price card's height exactly -- see .stacked-col) ---------- */
+/* ---------- Leadership (stacked under Debt payback; app.js gives it a
+   min-height that reaches the Sticker Price card's bottom edge, and it
+   grows past that when the list is longer) ---------- */
 
 .leadership-card {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .leadership-card .card-head { margin-bottom: 0.6rem; }
 .leadership-card .card-sub { font-size: 0.8rem; }
 
 .leadership-list {
-  /* font-size is set inline by app.js (fitLeadershipCard) so the whole
-     list -- text and spacing alike -- scales as one unit to whatever
-     room is left below the Debt payback card. This value is just the
-     un-scaled starting point. */
   font-size: 0.84rem;
   flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -545,9 +538,27 @@ main {
   padding: 0.3em 0;
   border-bottom: 1px solid var(--border);
   line-height: 1.25;
+  flex-wrap: wrap;
+}
+
+/* A manual note about the person, on its own line under the name. */
+.leadership-note {
+  flex: 0 0 100%;
+  margin-top: -0.35em;
+  font-size: 0.82em;
+  font-style: italic;
+  color: var(--muted);
 }
 
 .leadership-item:last-child { border-bottom: none; }
+
+.leadership-person {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+}
 
 .leadership-name {
   flex: 0 1 auto;
@@ -562,6 +573,19 @@ main {
 
 .leadership-name:hover { text-decoration: underline; }
 
+.leadership-name-plain { color: inherit; }
+.leadership-name-plain:hover { text-decoration: none; }
+
+.leadership-social {
+  flex: 0 0 auto;
+  font-size: 0.8em;
+  color: var(--muted);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.leadership-social:hover { color: var(--accent); }
+
 .leadership-title {
   flex: 0 1 auto;
   font-size: 0.88em;
@@ -570,6 +594,32 @@ main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.leadership-item[hidden] { display: none; }
+
+.leadership-toggle {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-top: 0.4rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.leadership-toggle:hover { text-decoration: underline; }
+
+.leadership-footer {
+  flex: 0 0 auto;
+  margin: 0.45rem 0 0;
+  font-size: 0.66rem;
+  line-height: 1.3;
+  color: var(--muted);
 }
 
 .leadership-placeholder {

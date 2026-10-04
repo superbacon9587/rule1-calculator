@@ -1,0 +1,68 @@
+ticker,person_name,title,action,source_url,checked_on,note,fallback_url
+INTC,Lip-Bu Tan,Chief Executive Officer,replace_ceo,https://www.intc.com/news-events/press-releases/detail/1731/introducing-intels-next-ceo,2026-10-04,,
+INTC,Frank Yeary,Chairperson,replace_chair,https://www.intc.com/news-events/press-releases/detail/1731/introducing-intels-next-ceo,2026-10-04,,https://www.intc.com/news-events/press-releases/detail/1731/introducing-intels-next-ceo
+WMT,John Furner,Chief Executive Officer,replace_ceo,https://corporate.walmart.com/content/corporate/en_us/news/2025/11/14/walmart-announces-john-furner-as-president-and-chief-executive-o0.html,2026-10-04,,
+WMT,Doug McMillon,,remove,https://corporate.walmart.com/about/leadership/doug-mcmillon,2026-10-04,,
+WMT,S. Robson Walton,Board member,remove,https://corporate.walmart.com/about/board-of-directors,2026-10-04,,
+WMT,Timothy P. Flynn,Board member,remove,https://corporate.walmart.com/about/board-of-directors,2026-10-04,,
+WMT,Shishir Mehrotra,Board member,add,https://corporate.walmart.com/about/board-of-directors,2026-10-04,,https://corporate.walmart.com/about/board-of-directors
+WMT,Bob Moritz,Board member,add,https://corporate.walmart.com/about/board-of-directors,2026-10-04,,https://corporate.walmart.com/about/board-of-directors
+PG,Shailesh Jejurikar,Chief Executive Officer,replace_ceo,https://www.peoplematters.in/news/leadership/procter-and-gamble-appoints-ceo-shailesh-jejurikar-as-chairman-effective-august-1-51145,2026-10-04,,https://us.pg.com/leadership-team/
+PG,Shailesh Jejurikar,Chairperson,replace_chair,https://www.peoplematters.in/news/leadership/procter-and-gamble-appoints-ceo-shailesh-jejurikar-as-chairman-effective-august-1-51145,2026-10-04,,https://us.pg.com/leadership-team/
+PG,Jon Moeller,Board member,remove,https://www.investing.com/news/company-news/pg-names-jejurikar-chairman-as-moeller-retires-93CH-4819735,2026-10-04,,
+HOG,Artie Starrs,Chief Executive Officer,replace_ceo,https://ridermagazine.com/2025/08/04/harley-davidson-names-artie-starrs-to-replace-jochen-zeitz-as-ceo/,2026-10-04,,https://investor.harley-davidson.com/news/news-details/2025/Harley-Davidson-Appoints-Artie-Starrs-as-President-and-Chief-Executive-Officer/default.aspx
+HOG,Troy Alstead,Chairperson,replace_chair,https://s201.q4cdn.com/697889289/files/doc_governance/2025/Oct/15/2025-10-01-HDI-Board-Chair-Committee-Members-and-Chairs-054e61.pdf,2026-10-04,,https://s201.q4cdn.com/697889289/files/doc_governance/2025/Oct/15/2025-10-01-HDI-Board-Chair-Committee-Members-and-Chairs-054e61.pdf
+KO,Henrique Braun,Chief Executive Officer,replace_ceo,https://www.cnbc.com/2025/12/10/coca-cola-coo-henrique-braun-ceo-.html,2026-10-04,,https://www.coca-colacompany.com/about-us/leadership
+KO,James Quincey,Executive Chairman,replace_chair,https://www.coca-colacompany.com/media-center/the-coca-cola-company-announces-ceo-succession-plan,2026-10-04,,
+AAPL,Tim Cook,Chairperson,replace_chair,https://www.cnbc.com/2026/04/20/apple-names-john-ternus-ceo-replacing-tim-cook-who-becomes-chairman.html,2026-10-04,,
+HD,Greg Brenneman,Chair (while CEO is on leave),add,https://ir.homedepot.com/news-releases/2026/08-12-2026-140442024,2026-10-04,,
+HD,Ted Decker,,note,https://ir.homedepot.com/news-releases/2026/08-12-2026-140442024,2026-10-04,Temporarily on leave; two executives running the company,
+MSFT,Satya Nadella,Chairperson,replace_chair,https://news.microsoft.com/leadership/?section=board-members,2026-10-04,,
+JNJ,Joaquin Duato,Chairperson,replace_chair,https://www.jnj.com/our-leadership-team,2026-10-04,,
+CSCO,Chuck Robbins,Chairperson,replace_chair,https://newsroom.cisco.com/c/r/newsroom/en/us/executives.html,2026-10-04,,
+CSCO,Pete Shimer,Board member,add,https://newsroom.cisco.com/c/r/newsroom/en/us/a/y2026/m04/cisco-appoints-pete-shimer-to-its-board-of-directors.html,2026-10-04,,https://newsroom.cisco.com/c/r/newsroom/en/us/a/y2026/m04/cisco-appoints-pete-shimer-to-its-board-of-directors.html
+CSCO,Kevin Weil,Board member,add,https://newsroom.cisco.com/c/r/newsroom/en/us/a/y2025/m05/cisco-appoints-kevin-weil-to-its-board-of-directors.html,2026-10-04,,https://newsroom.cisco.com/c/r/newsroom/en/us/a/y2025/m05/cisco-appoints-kevin-weil-to-its-board-of-directors.html
+AAPL,Al Gore,Board member,remove,https://www.apple.com/leadership/,2026-10-04,,
+AAPL,James A. Bell,Board member,remove,https://www.apple.com/leadership/,2026-10-04,,
+AAPL,Wanda Austin,Board member,add,https://www.apple.com/leadership/,2026-10-04,,https://www.apple.com/leadership/
+AAPL,Alex Gorsky,Board member,add,https://www.apple.com/leadership/,2026-10-04,,https://www.apple.com/leadership/
+AAPL,Monica C. Lozano,Board member,add,https://www.apple.com/leadership/,2026-10-04,,https://www.apple.com/leadership/
+AAPL,,,board_checked,https://www.apple.com/leadership/,2026-10-04,,
+MSFT,Carmine Di Sibio,Board member,add,https://news.microsoft.com/leadership/?section=board-members,2026-10-04,,https://news.microsoft.com/leadership/?section=board-members
+MSFT,John David Rainey,Board member,add,https://news.microsoft.com/leadership/?section=board-members,2026-10-04,,https://news.microsoft.com/leadership/?section=board-members
+MSFT,,,board_checked,https://news.microsoft.com/leadership/?section=board-members,2026-10-04,,
+KO,Helene D. Gayle,Board member,remove,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,2026-10-04,,
+KO,Maria Elena Lagomasino,Board member,remove,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,2026-10-04,,
+KO,Bela Bajaria,Board member,add,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,2026-10-04,,https://investors.coca-colacompany.com/corporate-governance/board-of-directors
+KO,Thomas S. Gayner,Board member,add,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,2026-10-04,,https://investors.coca-colacompany.com/corporate-governance/board-of-directors
+KO,Max Levchin,Board member,add,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,2026-10-04,,https://investors.coca-colacompany.com/corporate-governance/board-of-directors
+KO,Amity Millhiser,Board member,add,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,2026-10-04,,https://investors.coca-colacompany.com/corporate-governance/board-of-directors
+KO,,,board_checked,https://investors.coca-colacompany.com/corporate-governance/board-of-directors,2026-10-04,,
+JNJ,Darius Adamczyk,Board member,remove,https://www.jnj.com/our-leadership-team,2026-10-04,,
+JNJ,Anne Mulcahy,Board member,remove,https://www.jnj.com/our-leadership-team,2026-10-04,,
+JNJ,Scott Davis,Board member,remove,https://www.jnj.com/our-leadership-team,2026-10-04,,
+JNJ,John G. Morikis,Board member,add,https://www.jnj.com/our-leadership-team,2026-10-04,,https://www.jnj.com/our-leadership-team
+JNJ,Daniel E. Pinto,Board member,add,https://www.jnj.com/our-leadership-team,2026-10-04,,https://www.jnj.com/our-leadership-team
+JNJ,Eugene A. Woods,Board member,add,https://www.jnj.com/our-leadership-team,2026-10-04,,https://www.jnj.com/our-leadership-team
+JNJ,,,board_checked,https://www.jnj.com/our-leadership-team,2026-10-04,,
+PG,Angela Braly,Board member,remove,https://us.pg.com/board-of-directors/,2026-10-04,,
+PG,Patricia A. Woertz,Board member,remove,https://us.pg.com/board-of-directors/,2026-10-04,,
+PG,Terry Lundgren,Board member,remove,https://us.pg.com/board-of-directors/,2026-10-04,,
+PG,Craig Arnold,Board member,add,https://us.pg.com/board-of-directors/,2026-10-04,,https://us.pg.com/board-of-directors/
+PG,Ashley McEvoy,Board member,add,https://us.pg.com/board-of-directors/,2026-10-04,,https://us.pg.com/board-of-directors/
+PG,,,board_checked,https://us.pg.com/board-of-directors/,2026-10-04,,
+HD,Linda R. Gooden,Board member,remove,https://ir.homedepot.com/corporate-governance/board-of-directors,2026-10-04,,
+HD,Al Carey,Board member,remove,https://ir.homedepot.com/corporate-governance/board-of-directors,2026-10-04,,
+HD,Asha Sharma,Board member,add,https://ir.homedepot.com/corporate-governance/board-of-directors,2026-10-04,,https://ir.homedepot.com/corporate-governance/board-of-directors
+HD,,,board_checked,https://ir.homedepot.com/corporate-governance/board-of-directors,2026-10-04,,
+TSM,F.C. Tseng,Board member,add,https://investor.tsmc.com/english/board-of-directors,2026-10-04,,https://investor.tsmc.com/english/board-of-directors
+TSM,Chun-Hsien Yeh,Board member,add,https://investor.tsmc.com/english/board-of-directors,2026-10-04,,https://investor.tsmc.com/english/board-of-directors
+TSM,Sir Peter L. Bonfield,Board member,add,https://investor.tsmc.com/english/board-of-directors,2026-10-04,,https://investor.tsmc.com/english/board-of-directors
+TSM,Michael R. Splinter,Board member,add,https://investor.tsmc.com/english/board-of-directors,2026-10-04,,https://investor.tsmc.com/english/board-of-directors
+TSM,Moshe N. Gavrielov,Board member,add,https://investor.tsmc.com/english/board-of-directors,2026-10-04,,https://investor.tsmc.com/english/board-of-directors
+TSM,L. Rafael Reif,Board member,add,https://investor.tsmc.com/english/board-of-directors,2026-10-04,,https://investor.tsmc.com/english/board-of-directors
+TSM,Ursula M. Burns,Board member,add,https://investor.tsmc.com/english/board-of-directors,2026-10-04,,https://investor.tsmc.com/english/board-of-directors
+TSM,Lynn L. Elsenhans,Board member,add,https://investor.tsmc.com/english/board-of-directors,2026-10-04,,https://investor.tsmc.com/english/board-of-directors
+TSM,Chuan Lin,Board member,add,https://investor.tsmc.com/english/board-of-directors,2026-10-04,,https://investor.tsmc.com/english/board-of-directors
+TSM,,,board_checked,https://investor.tsmc.com/english/board-of-directors,2026-10-04,,
+WMT,,,board_checked,https://corporate.walmart.com/about/board-of-directors,2026-10-04,,

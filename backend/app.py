@@ -123,6 +123,8 @@ def _result_to_json(result) -> dict:
             "years": 10,
         },
         "leadership": company.officers,
+        "leadership_checked_on": company.officers_checked_on,
+        "leadership_board_checked_on": company.officers_board_checked_on,
         "sources": company.source_urls,
         "warnings": company.warnings,
         "data_source": company.data_source,
