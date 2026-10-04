@@ -340,6 +340,28 @@ main {
   font-size: 0.9rem;
 }
 
+.live-links {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.8rem;
+  margin-top: 0.45rem;
+  max-width: 34rem;
+  font-size: 0.8rem;
+}
+
+.live-links[hidden] { display: none; }
+
+.live-links a {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.live-links-note {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
 .header-card-figures {
   display: flex;
   gap: 1.6rem;

@@ -16,6 +16,7 @@
     name: document.getElementById("company-name"),
     ticker: document.getElementById("company-ticker"),
     sector: document.getElementById("company-sector"),
+    liveLinks: document.getElementById("live-links"),
     price: document.getElementById("current-price"),
     priceLabel: document.getElementById("price-label"),
     sticker: document.getElementById("sticker-price"),
@@ -487,12 +488,40 @@
     });
   }
 
+  // Outbound links for current quotes, built from the ticker in the response.
+  function renderLiveLinks(ticker) {
+    if (!els.liveLinks) return;
+    els.liveLinks.textContent = "";
+    if (!ticker) {
+      els.liveLinks.hidden = true;
+      return;
+    }
+    const links = [
+      ["Yahoo Finance", `https://finance.yahoo.com/quote/${encodeURIComponent(ticker.toUpperCase())}`],
+      ["StockAnalysis", `https://stockanalysis.com/stocks/${encodeURIComponent(ticker.toLowerCase())}/`],
+    ];
+    for (const [label, href] of links) {
+      const a = document.createElement("a");
+      a.href = href;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = label;
+      els.liveLinks.appendChild(a);
+    }
+    const note = document.createElement("span");
+    note.className = "live-links-note";
+    note.textContent = "Dashboard prices are as of the last close in the data. Use these for current quotes.";
+    els.liveLinks.appendChild(note);
+    els.liveLinks.hidden = false;
+  }
+
   function render(data) {
     currentData = data;
 
     if (els.name) els.name.textContent = data.name || data.ticker;
     if (els.ticker) els.ticker.textContent = data.ticker;
     if (els.sector) els.sector.textContent = [data.sector, data.industry].filter(Boolean).join(" — ");
+    renderLiveLinks(String(data.ticker || "").trim());
     if (els.price) els.price.textContent = fmtMoney(data.current_price);
     if (els.priceLabel) {
       // "YYYY-MM-DD" -> "MM/DD/YYYY" by splitting the string, so no timezone shift
