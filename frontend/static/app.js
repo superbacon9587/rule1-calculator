@@ -233,7 +233,7 @@
   };
 
   const BT_HIT_RATES = [
-    ["moat_held_up", "Moat held up"],
+    ["moat_held_up", "Moat score at end of hold vs. at signal"],
     ["price_target_hit", "Price target hit"],
     ["is_profitable", "Win rate (profitable)"],
   ];
@@ -367,7 +367,7 @@
         ["Realized price", (o) => fmtMoney(o.realized_price)],
         ["Realized return", (o) => fmtSignedPct(o.realized_return)],
         ["Projected", (o) => fmtSignedPct(o.projected_return)],
-        ["Moat held", (o) => fmtFlag(o.moat_held_up), "flag"],
+        ["Moat score same or higher at end", (o) => fmtFlag(o.moat_held_up), "flag"],
         ["Target hit", (o) => fmtFlag(o.price_target_hit), "flag"],
         ["Profitable", (o) => fmtFlag(o.is_profitable), "flag"],
         ["Max DD", (o) => fmtPct(o.max_drawdown)],
