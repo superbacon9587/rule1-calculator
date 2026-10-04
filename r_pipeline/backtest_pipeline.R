@@ -829,14 +829,55 @@ known_annual_data <- function(ticker_value, as_of_date) {
     slice_tail(n = HISTORY_YEARS + 1)
 }
 
+# The annual snapshot only changes on a known_from date, so the moat is
+# memoized by ticker plus the latest known_from on or before the as-of date
+annual_known_dates <- lapply(
+  split(as.Date(annual_prepared$known_from), annual_prepared$ticker),
+  function(dates) sort(unique(dates))
+)
+moat_cache <- new.env()
+
 moat_as_of <- function(ticker_value, as_of_date) {
-  annual_data <- known_annual_data(ticker_value, as_of_date)
+  known_dates <- annual_known_dates[[ticker_value]]
   
-  if (nrow(annual_data) == 0) {
+  if (is.null(known_dates)) {
     return(NA_integer_)
   }
   
-  as.integer(assess_moat(calculate_big_five(annual_data)$green_count))
+  index <- rows_on_or_before(known_dates, as_of_date)
+  
+  if (index == 0) {
+    return(NA_integer_)
+  }
+  
+  key <- paste(ticker_value, index)
+  
+  if (is.null(moat_cache[[key]])) {
+    annual_data <- known_annual_data(ticker_value, as_of_date)
+    moat_cache[[key]] <- as.integer(
+      assess_moat(calculate_big_five(annual_data)$green_count)
+    )
+  }
+  
+  moat_cache[[key]]
+}
+
+# 1 only if the moat never fell below its signal-date level at any yearly
+# checkpoint of the hold (signal date + 1, 2, ... years, and the target
+# date). Checkpoints with no moat are skipped; NA when none has one.
+moat_held_through <- function(ticker_value, signal_date, horizon, target_date,
+                              signal_moat) {
+  checkpoints <- unique(c(signal_date %m+% years(seq_len(horizon)), target_date))
+  moats <- sapply(seq_along(checkpoints), function(i) {
+    moat_as_of(ticker_value, checkpoints[i])
+  })
+  moats <- moats[!is.na(moats)]
+  
+  if (length(moats) == 0) {
+    return(NA_integer_)
+  }
+  
+  as.integer(all(moats >= signal_moat))
 }
 
 # calculate_rule1_signal() on what was known as of a date.
@@ -974,7 +1015,9 @@ outcome_row <- function(ticker_value, ticker_prices, signal_date, signal) {
     realized_return <- realized_price / price_at_signal - 1
     daily_returns <- diff(holding$close) / head(holding$close, -1)
     
-    moat_at_target <- moat_as_of(ticker_value, target_date)
+    moat_held_up <- moat_held_through(
+      ticker_value, signal_date, horizon, target_date, signal$moat_level
+    )
     benchmark_return <- benchmark_return_between(signal_date, target_date)
     
     rows[[length(rows) + 1]] <- data.frame(
@@ -985,7 +1028,7 @@ outcome_row <- function(ticker_value, ticker_prices, signal_date, signal) {
       realized_price = realized_price,
       realized_return = realized_return,
       projected_return = (1 + growth_rate)^horizon - 1,
-      moat_held_up = as.integer(moat_at_target >= signal$moat_level),
+      moat_held_up = moat_held_up,
       price_target_hit = as.integer(max(holding$close[-1]) >= sticker_price),
       is_profitable = as.integer(realized_return > 0),
       max_drawdown = min(holding$close / cummax(holding$close) - 1),

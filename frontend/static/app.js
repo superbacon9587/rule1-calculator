@@ -233,10 +233,12 @@
   };
 
   const BT_HIT_RATES = [
-    ["moat_held_up", "Moat score at end of hold vs. at signal"],
+    ["moat_held_up", "Moat held through the hold"],
     ["price_target_hit", "Price target hit"],
     ["is_profitable", "Win rate (profitable)"],
   ];
+  const BT_MOAT_CAPTION =
+    "Moat counts as held only if the Big Five green count never fell below its signal-date level at any yearly checkpoint during the hold.";
   const BT_PERFORMANCE = [
     ["max_drawdown", "Max drawdown"],
     ["volatility", "Volatility (annualized)"],
@@ -335,6 +337,13 @@
         const sub = `${r.hits} of ${r.n} signals` + (r.missing ? ` (${r.missing} not yet known)` : "");
         return btTile(label, fmtPct(r.rate), sub, block.provenance && block.provenance.hit_rates ? block.provenance.hit_rates[col] : "");
       }).join("");
+      if (!document.getElementById("bt-hit-rates-caption")) {
+        const caption = document.createElement("p");
+        caption.id = "bt-hit-rates-caption";
+        caption.className = "bt-src";
+        caption.textContent = BT_MOAT_CAPTION;
+        bt.hitRates.insertAdjacentElement("afterend", caption);
+      }
     }
 
     const latest = block.latest || {};
@@ -367,7 +376,7 @@
         ["Realized price", (o) => fmtMoney(o.realized_price)],
         ["Realized return", (o) => fmtSignedPct(o.realized_return)],
         ["Projected", (o) => fmtSignedPct(o.projected_return)],
-        ["Moat score same or higher at end", (o) => fmtFlag(o.moat_held_up), "flag"],
+        ["Moat never dropped", (o) => fmtFlag(o.moat_held_up), "flag"],
         ["Target hit", (o) => fmtFlag(o.price_target_hit), "flag"],
         ["Profitable", (o) => fmtFlag(o.is_profitable), "flag"],
         ["Max DD", (o) => fmtPct(o.max_drawdown)],
