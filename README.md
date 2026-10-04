@@ -60,7 +60,9 @@ docstring at the top of `backend/rule1/db_data.py` documents which database
 column feeds each number.
 
 `rule1.db` is not committed to git (see `.gitignore`), so a fresh clone
-needs it built or copied into `backend/` before the app can show anything.
+needs it built or copied into `backend/` before the app can show anything
+(a deploy downloads it instead; see "Deploying to Render"). Without it the
+app shows a "data not available" page rather than an error.
 
 ## Setup
 
@@ -90,10 +92,9 @@ different units compare cleanly on one log-scale axis), the debt-payback
 gauge, the full Sticker Price walk-through as a table, and — last — the
 moat castle with the Big Five ratio shown above it.
 
-This is a plain local Flask app — `python app.py` starts a server only your
-own browser can reach, and closing the terminal (or hitting Ctrl+C) stops
-it. Nothing is deployed, hosted, or made reachable from outside your
-machine.
+Run this way it is a plain local Flask app — `python app.py` starts a
+server only your own browser can reach, and closing the terminal (or hitting
+Ctrl+C) stops it. To host it, see "Deploying to Render" below.
 
 ## Usage — the command line (optional)
 
@@ -136,6 +137,32 @@ python analyze.py AAPL --no-charts         # terminal report only, skip the PNGs
 - When you pass more than one ticker: a comparison table plus
   `comparison_<TICKERS>.png`, a side-by-side version of the growth charts.
 
+## Deploying to Render
+
+Create a Render **Web Service** from this repo with:
+
+- **Build command:** `pip install -r requirements.txt && python backend/fetch_db.py`
+- **Start command:** `gunicorn --chdir backend app:app`
+- **Environment variables:**
+
+  | Name | Value |
+  | --- | --- |
+  | `PYTHON_VERSION` | `3.11.9` |
+  | `HF_DATASET_REPO` | the Hugging Face dataset holding the database, as `owner/name` |
+  | `HF_TOKEN` | a Hugging Face access token with read access to that dataset — **secret**; set it only in Render's dashboard, never in the repo |
+
+`rule1.db` lives in a private Hugging Face dataset and must never be
+committed to this repo (it is listed in `.gitignore`). During the build,
+`backend/fetch_db.py` downloads it to `backend/rule1.db`, checks that it is
+a real SQLite file, and fails the build with a clear message if the
+variables are missing or the download doesn't work. It does nothing when the
+file is already there, so it is safe to run locally. To try it without
+touching your real database, point it somewhere else:
+
+```bash
+DB_TARGET=/tmp/rule1-test.db HF_DATASET_REPO=owner/name HF_TOKEN=... python backend/fetch_db.py
+```
+
 ## Project layout
 
 ```
@@ -145,6 +172,7 @@ python analyze.py AAPL --no-charts         # terminal report only, skip the PNGs
 │   ├── app.py                 # `python app.py` — the local dashboard (Flask)
 │   ├── analyze.py             # `python analyze.py TICKER [TICKER...]` — CLI
 │   ├── build_rule1_db.py      # builds rule1.db from the WRDS dump
+│   ├── fetch_db.py            # downloads rule1.db at deploy time (Render)
 │   ├── rule1.db               # local database (not in git)
 │   ├── rule1/
 │   │   ├── data.py            # the CompanyData container
@@ -158,7 +186,7 @@ python analyze.py AAPL --no-charts         # terminal report only, skip the PNGs
 │   ├── scripts/
 │   └── tests/
 └── frontend/
-    ├── templates/index.html   # dashboard page (ticker picker + results panel)
+    ├── templates/             # index.html (dashboard), no_data.html (rule1.db missing)
     ├── static/                # app.css, app.js
     └── assets/                # the five moat/castle graphics
 ```

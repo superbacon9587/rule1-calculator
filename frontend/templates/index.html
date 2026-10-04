@@ -224,7 +224,7 @@
 </main>
 
 <footer>
-  <p>Runs entirely on this machine — nothing here is published or shared. All figures are read from the local <code>rule1.db</code> (10 fiscal years), which covers {{ tickers | join(', ') }}; no other tickers are supported and nothing is fetched live. Not investment advice.</p>
+  <p>Data covers {{ tickers | length }} companies ({{ tickers | join(', ') }}) through 12/31/25. For education only — not investment advice.</p>
 </footer>
 
 <script src="{{ url_for('static', filename='app.js') }}"></script>
