@@ -260,6 +260,7 @@ def fetch_company_data_from_db(ticker: str, db_path: Path = DEFAULT_DB_PATH,
     # ---- Current price, TTM EPS, PE -----------------------------------------------
     if latest_price is not None:
         data.current_price = latest_price["adj_close"]
+        data.current_price_date = latest_price["date"]
     if quarter is not None:
         data.current_eps = _num(quarter["eps_ttm"])
     if data.current_price and data.current_eps and data.current_eps > 0:
